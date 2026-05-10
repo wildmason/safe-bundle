@@ -72,6 +72,15 @@ During development:
 cargo run -- --help
 ```
 
+Generate shell completions:
+
+```sh
+safe-bundle completions bash > safe-bundle.bash
+safe-bundle completions zsh > _safe-bundle
+safe-bundle completions fish > safe-bundle.fish
+safe-bundle completions powershell > safe-bundle.ps1
+```
+
 ## Common Workflows
 
 - Before opening a public issue, build a `public-issue` bundle, verify it with

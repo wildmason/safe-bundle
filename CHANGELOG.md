@@ -16,6 +16,8 @@ should be called out explicitly.
 - Distribution documentation covering GitHub Releases, crates.io, and
   verification expectations.
 - CI smoke coverage for release helper script syntax.
+- `completions <shell>` command for Bash, Elvish, Fish, PowerShell, and Zsh
+  completion generation.
 
 ## 1.0.0 - 2026-05-10
 

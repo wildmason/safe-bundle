@@ -41,6 +41,14 @@ foreach ($scriptName in @('install.ps1', 'verify-release.ps1')) {
 }
 Write-Host '::endgroup::'
 
+Write-Host '::group::completion generation'
+$completion = cargo run --quiet -- completions powershell
+$completionText = $completion -join "`n"
+if ($completionText -notmatch 'safe-bundle' -or $completionText -notmatch 'scrub') {
+    throw 'completion generation did not include expected command names'
+}
+Write-Host '::endgroup::'
+
 Write-Host '::group::scrub files'
 cargo run --quiet -- scrub fixtures/synthetic --profile public-issue --out $scrubOut --events $scrubEvents --summary text
 $scrubEventsText = Get-Content -Raw -LiteralPath $scrubEvents

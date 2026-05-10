@@ -9,7 +9,21 @@ fn cli_top_level_commands_are_stable_for_1_0() {
         .map(|command| command.get_name().to_string())
         .collect::<Vec<_>>();
 
-    assert_eq!(subcommands, ["scrub", "bundle", "inspect", "rules"]);
+    for command in ["scrub", "bundle", "inspect", "rules"] {
+        assert!(
+            subcommands.contains(&command.to_string()),
+            "top-level help is missing stable 1.0 command {command}"
+        );
+    }
+}
+
+#[test]
+fn completions_command_exposes_supported_shells() {
+    let help = subcommand_help("completions");
+
+    for shell in ["bash", "elvish", "fish", "powershell", "zsh"] {
+        assert!(help.contains(shell), "completions help is missing {shell}");
+    }
 }
 
 #[test]

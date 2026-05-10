@@ -11,7 +11,8 @@ use crate::report::{
     events_jsonl, private_events_json, sarif_json, summary_markdown, summary_text,
 };
 use anyhow::{Context, Result, bail};
-use clap::{Args, Parser, Subcommand};
+use clap::{Args, CommandFactory, Parser, Subcommand};
+use clap_complete::{Shell, generate};
 use std::fs;
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
@@ -31,6 +32,7 @@ enum Command {
     Bundle(BundleArgs),
     Inspect(InspectArgs),
     Rules(RulesArgs),
+    Completions(CompletionsArgs),
 }
 
 #[derive(Debug, Args)]
@@ -137,6 +139,12 @@ struct RulesArgs {
     command: RulesCommand,
 }
 
+#[derive(Debug, Args)]
+struct CompletionsArgs {
+    #[arg(value_enum)]
+    shell: Shell,
+}
+
 #[derive(Debug, Subcommand)]
 enum RulesCommand {
     List {
@@ -166,6 +174,7 @@ pub fn run() -> Result<()> {
         Command::Bundle(args) => bundle(args),
         Command::Inspect(args) => inspect(args),
         Command::Rules(args) => rules(args),
+        Command::Completions(args) => completions(args),
     }
 }
 
@@ -456,6 +465,12 @@ fn rules(args: RulesArgs) -> Result<()> {
             print_summary(SummaryFormat::Text, &summary, &skipped)?;
         }
     }
+    Ok(())
+}
+
+fn completions(args: CompletionsArgs) -> Result<()> {
+    let mut command = Cli::command();
+    generate(args.shell, &mut command, "safe-bundle", &mut io::stdout());
     Ok(())
 }
 

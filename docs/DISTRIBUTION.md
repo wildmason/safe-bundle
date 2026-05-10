@@ -40,6 +40,20 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 `
   -Force
 ```
 
+## Shell Completions
+
+Generate completion scripts from the installed binary:
+
+```sh
+safe-bundle completions bash > safe-bundle.bash
+safe-bundle completions zsh > _safe-bundle
+safe-bundle completions fish > safe-bundle.fish
+safe-bundle completions powershell > safe-bundle.ps1
+```
+
+Install the generated file using the conventions for the target shell or
+package manager.
+
 ## Verify A Release
 
 Maintainers can verify all published release assets with:
