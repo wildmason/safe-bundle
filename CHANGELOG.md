@@ -20,6 +20,11 @@ should be called out explicitly.
   bundle-hash validation.
 - Logical golden compatibility test coverage for the schema-v1 bundle layout
   and manifest contract.
+- `scrub --check` for CI-friendly redaction checks.
+- `scrub --sarif <path>` for GitHub code-scanning uploads.
+- Composite GitHub Action wrapper in `action.yml`.
+- `docs/AUTOMATION.md` with GitHub Actions, pre-commit, and git hook
+  examples.
 - Provider detector coverage for AWS secret/session tokens, escaped PEM private
   keys in JSON strings, Stripe webhook secrets, SendGrid, Datadog, Netlify,
   Vercel, Postmark, Sentry, Supabase service-role keys, and Twilio auth tokens.

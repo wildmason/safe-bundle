@@ -220,6 +220,25 @@ pub struct SourceSpan {
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct SourceRegion {
+    pub start_line: usize,
+    pub start_column: usize,
+    pub end_line: usize,
+    pub end_column: usize,
+}
+
+impl Default for SourceRegion {
+    fn default() -> Self {
+        Self {
+            start_line: 1,
+            start_column: 1,
+            end_line: 1,
+            end_column: 1,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct RedactionEvent {
     pub redaction_id: String,
     pub placeholder: String,
@@ -231,6 +250,8 @@ pub struct RedactionEvent {
     pub source_file: String,
     pub source_format: String,
     pub original_span: SourceSpan,
+    #[serde(default)]
+    pub source_region: SourceRegion,
     pub redacted_span: SourceSpan,
     pub original_length: usize,
     pub length_bucket: String,

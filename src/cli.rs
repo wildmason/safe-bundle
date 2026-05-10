@@ -7,7 +7,9 @@ use crate::input::{InputOptions, collect_inputs, parse_size, read_stdin};
 use crate::model::{
     FailOn, InputFormat, PlaceholderStyle, Profile, RedactionSummary, SummaryFormat,
 };
-use crate::report::{events_jsonl, private_events_json, summary_markdown, summary_text};
+use crate::report::{
+    events_jsonl, private_events_json, sarif_json, summary_markdown, summary_text,
+};
 use anyhow::{Context, Result, bail};
 use clap::{Args, Parser, Subcommand};
 use std::fs;
@@ -96,10 +98,14 @@ struct ScrubArgs {
     receipt: Option<PathBuf>,
     #[arg(long)]
     events: Option<PathBuf>,
+    #[arg(long)]
+    sarif: Option<PathBuf>,
     #[arg(long, value_enum, default_value_t = SummaryFormat::Text)]
     summary: SummaryFormat,
     #[arg(long)]
     dry_run: bool,
+    #[arg(long)]
+    check: bool,
 }
 
 #[derive(Debug, Args)]
@@ -214,11 +220,17 @@ fn scrub(args: ScrubArgs) -> Result<()> {
         .flat_map(|(_, document)| document.private_events.clone())
         .collect::<Vec<_>>();
 
-    if args.dry_run {
+    if args.dry_run || args.check {
         if let Some(events_path) = args.events {
             write_events(&events_path, &all_events)?;
         }
+        if let Some(sarif_path) = args.sarif {
+            write_sarif(&sarif_path, &all_events)?;
+        }
         print_summary(args.summary, &summary, &skipped)?;
+        if args.check && summary.redaction_count > 0 {
+            bail!("redactions were found and --check is set");
+        }
         enforce_fail_on(&args.shared.fail_on, &summary)?;
         return Ok(());
     }
@@ -238,6 +250,9 @@ fn scrub(args: ScrubArgs) -> Result<()> {
     }
     if let Some(events_path) = args.events {
         write_events(&events_path, &all_events)?;
+    }
+    if let Some(sarif_path) = args.sarif {
+        write_sarif(&sarif_path, &all_events)?;
     }
 
     if wrote_redacted_to_stdout {
@@ -486,6 +501,15 @@ fn write_events(path: &Path, events: &[crate::model::RedactionEvent]) -> Result<
         fs::create_dir_all(parent)?;
     }
     fs::write(path, events_jsonl(events)?)
+        .with_context(|| format!("failed to write {}", path.display()))?;
+    Ok(())
+}
+
+fn write_sarif(path: &Path, events: &[crate::model::RedactionEvent]) -> Result<()> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(path, sarif_json(events)?)
         .with_context(|| format!("failed to write {}", path.display()))?;
     Ok(())
 }

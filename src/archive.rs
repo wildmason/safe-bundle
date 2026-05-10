@@ -588,6 +588,17 @@ mod tests {
     }
 
     #[test]
+    fn schema_v1_redactions_without_source_region_still_parse() {
+        let legacy_redactions = r#"{"redaction_id":"redaction:1","placeholder":"[REDACTED:SECRET.CLOUD_CREDENTIAL:1]","class":"secret.cloud_credential","confidence":"high","detector_id":"github-token","detector_version":"1","reason":"GitHub token","source_file":"logs/app.env","source_format":"env","original_span":{"start":8,"end":42},"redacted_span":{"start":8,"end":44},"original_length":34,"length_bucket":"33-64","context":{}}"#;
+
+        let events = parse_redactions_jsonl(legacy_redactions).unwrap();
+
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].source_region.start_line, 1);
+        assert_eq!(events[0].source_region.start_column, 1);
+    }
+
+    #[test]
     fn verify_bundle_rejects_checksum_mismatch() {
         let temp = tempfile::tempdir().unwrap();
         let output = temp.path().join("broken.safe-bundle.zip");

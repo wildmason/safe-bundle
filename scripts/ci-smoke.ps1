@@ -14,6 +14,8 @@ $stdinOut = Join-Path $smokeDir 'stdin-redacted.txt'
 $scrubOut = Join-Path $smokeDir 'redacted-files'
 $scrubEvents = Join-Path $smokeDir 'scrub-redactions.jsonl'
 $dryRunEvents = Join-Path $smokeDir 'dry-run-redactions.jsonl'
+$checkSarif = Join-Path $smokeDir 'safe-bundle.sarif'
+$cleanDir = Join-Path $smokeDir 'clean-input'
 $policyDir = Join-Path $smokeDir 'policy-input'
 $policyConfig = Join-Path $smokeDir '.safe-bundle.toml'
 $policyOut = Join-Path $smokeDir 'policy-redacted'
@@ -42,6 +44,36 @@ cargo run --quiet -- scrub fixtures/synthetic --profile public-issue --dry-run -
 $dryRunEventsText = Get-Content -Raw -LiteralPath $dryRunEvents
 if ($dryRunEventsText -notmatch '"source_file":"synthetic/app\.env"' -or $dryRunEventsText -notmatch '"placeholder":"\[REDACTED:') {
     throw 'scrub --dry-run --events did not emit expected public redaction metadata'
+}
+$previousErrorActionPreference = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
+$checkExitCode = $null
+try {
+    cargo run --quiet -- scrub fixtures/synthetic --profile public-issue --check --sarif $checkSarif --summary json 2>&1 | Out-Null
+    $checkExitCode = $LASTEXITCODE
+}
+finally {
+    $ErrorActionPreference = $previousErrorActionPreference
+}
+if ($checkExitCode -eq 0) {
+    throw 'scrub --check succeeded despite fixture redactions'
+}
+$checkSarifText = Get-Content -Raw -LiteralPath $checkSarif
+if ($checkSarifText -match 'ghp_abcdefghijklmnopqrstuvwxyz') {
+    throw 'scrub --sarif leaked the GitHub token fixture'
+}
+$checkSarifJson = $checkSarifText | ConvertFrom-Json
+if ($checkSarifJson.version -ne '2.1.0' -or $checkSarifJson.runs[0].results.Count -lt 1) {
+    throw 'scrub --sarif did not emit expected SARIF results'
+}
+New-Item -ItemType Directory -Path $cleanDir | Out-Null
+@'
+LOG_LEVEL=info
+FEATURE_REQUIRED=false
+'@ | Set-Content -NoNewline -LiteralPath (Join-Path $cleanDir 'clean.env')
+cargo run --quiet -- scrub $cleanDir --profile public-issue --check --exclude '**/.git/**' --summary json | Out-Null
+if ($LASTEXITCODE -ne 0) {
+    throw 'scrub --check failed on a clean fixture'
 }
 Write-Host '::endgroup::'
 

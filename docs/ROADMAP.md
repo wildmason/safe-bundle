@@ -42,6 +42,8 @@ Goal: make `.safe-bundle.zip` a documented, stable interchange format.
 
 ## 0.5 - Automation Integrations
 
+Status: shipped on `main`.
+
 Goal: make safe-bundle easy to run in CI and local hooks.
 
 - Add `scrub --check` as a CI-friendly alias for dry-run failure behavior.

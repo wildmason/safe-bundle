@@ -1,0 +1,56 @@
+name: safe-bundle
+description: Run safe-bundle redaction checks and optionally upload SARIF.
+
+inputs:
+  paths:
+    description: Whitespace-separated paths to scan.
+    required: false
+    default: "."
+  profile:
+    description: Redaction profile to use.
+    required: false
+    default: "public-issue"
+  sarif-output:
+    description: SARIF output path.
+    required: false
+    default: "safe-bundle.sarif"
+  upload-sarif:
+    description: Upload SARIF with github/codeql-action/upload-sarif.
+    required: false
+    default: "true"
+  extra-args:
+    description: Additional safe-bundle scrub arguments.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Install safe-bundle
+      shell: bash
+      run: cargo install --path "$GITHUB_ACTION_PATH" --locked
+
+    - name: Run safe-bundle check
+      id: scan
+      shell: bash
+      run: |
+        set +e
+        safe-bundle scrub ${{ inputs.paths }} \
+          --profile "${{ inputs.profile }}" \
+          --check \
+          --sarif "${{ inputs.sarif-output }}" \
+          ${{ inputs.extra-args }}
+        status="$?"
+        echo "status=$status" >> "$GITHUB_OUTPUT"
+        exit 0
+
+    - name: Upload SARIF
+      if: ${{ inputs.upload-sarif == 'true' }}
+      uses: github/codeql-action/upload-sarif@v4
+      with:
+        sarif_file: ${{ inputs.sarif-output }}
+
+    - name: Fail on findings
+      if: ${{ steps.scan.outputs.status != '0' }}
+      shell: bash
+      run: exit "${{ steps.scan.outputs.status }}"

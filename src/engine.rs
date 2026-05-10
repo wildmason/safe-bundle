@@ -1,7 +1,7 @@
 use crate::detectors::{Candidate, DetectorSet};
 use crate::model::{
     Confidence, PlaceholderStyle, PrivateRedactionEvent, Profile, RedactedDocument, RedactionClass,
-    RedactionEvent, SourceSpan,
+    RedactionEvent, SourceRegion, SourceSpan,
 };
 use sha2::{Digest, Sha256};
 use std::cmp::Reverse;
@@ -131,6 +131,7 @@ impl Redactor {
                     start: candidate.start,
                     end: candidate.end,
                 },
+                source_region: source_region(text, candidate.start, candidate.end),
                 redacted_span: SourceSpan {
                     start: redacted_start,
                     end: redacted_end,
@@ -253,6 +254,40 @@ fn length_bucket(len: usize) -> &'static str {
     }
 }
 
+fn source_region(text: &str, start: usize, end: usize) -> SourceRegion {
+    let (start_line, start_column) = line_column_at(text, start);
+    let (end_line, end_column) = line_column_at(text, end);
+    let end_column = if start_line == end_line {
+        end_column.max(start_column + 1)
+    } else {
+        end_column
+    };
+    SourceRegion {
+        start_line,
+        start_column,
+        end_line,
+        end_column,
+    }
+}
+
+fn line_column_at(text: &str, offset: usize) -> (usize, usize) {
+    let capped_offset = offset.min(text.len());
+    let mut line = 1;
+    let mut column = 1;
+    for (index, ch) in text.char_indices() {
+        if index >= capped_offset {
+            break;
+        }
+        if ch == '\n' {
+            line += 1;
+            column = 1;
+        } else {
+            column += 1;
+        }
+    }
+    (line, column)
+}
+
 pub fn sha256_hex(bytes: &[u8]) -> String {
     let digest = Sha256::digest(bytes);
     hex::encode(digest)
@@ -315,5 +350,22 @@ mod tests {
                 .iter()
                 .any(|event| event.class == RedactionClass::IdentityContact)
         );
+    }
+
+    #[test]
+    fn events_include_one_based_source_region() {
+        let mut redactor =
+            Redactor::new(Policy::new(Profile::PublicIssue, PlaceholderStyle::Bracket));
+        let document = redactor.redact_text(
+            "before\nAPI_KEY=ghp_abcdefghijklmnopqrstuvwxyz\n",
+            "app.env",
+            "env",
+        );
+
+        let event = document.events.first().unwrap();
+        assert_eq!(event.source_region.start_line, 2);
+        assert_eq!(event.source_region.start_column, 9);
+        assert_eq!(event.source_region.end_line, 2);
+        assert!(event.source_region.end_column > event.source_region.start_column);
     }
 }

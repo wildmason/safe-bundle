@@ -22,6 +22,8 @@ service.
 - Public redaction events never include raw secret values.
 - `scrub --events` writes public JSONL finding metadata without building a
   bundle.
+- `scrub --check` and `scrub --sarif` support CI, hooks, and GitHub code
+  scanning workflows.
 - Optional private receipts store hashes and source spans for sender-side
   correlation without copying raw secrets.
 
@@ -120,6 +122,15 @@ cargo run -- scrub fixtures/synthetic \
   --summary json
 ```
 
+Run a CI-friendly check and write SARIF:
+
+```sh
+cargo run -- scrub fixtures/synthetic \
+  --profile public-issue \
+  --check \
+  --sarif target/safe-bundle.sarif
+```
+
 ## Build a Support Bundle
 
 ```sh
@@ -204,6 +215,7 @@ Additional project docs:
 - [Threat model](docs/THREAT_MODEL.md)
 - [Configuration](docs/CONFIG.md)
 - [Bundle format](docs/BUNDLE_FORMAT.md)
+- [Automation](docs/AUTOMATION.md)
 - [Roadmap to 1.0](docs/ROADMAP.md)
 - [Release process](docs/RELEASE.md)
 - [Contributing](CONTRIBUTING.md)
