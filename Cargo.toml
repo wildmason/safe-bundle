@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 description = "Local-first redaction and safe support bundle CLI"
+repository = "https://github.com/wildmason/safe-bundle"
+readme = "README.md"
 
 [dependencies]
 anyhow = "1.0"

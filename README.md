@@ -1,5 +1,7 @@
 # safe-bundle
 
+[![CI](https://github.com/wildmason/safe-bundle/actions/workflows/ci.yml/badge.svg)](https://github.com/wildmason/safe-bundle/actions/workflows/ci.yml)
+
 Local-first redaction and safe support bundle CLI.
 
 `safe-bundle` helps developers share useful diagnostics without accidentally
@@ -116,6 +118,13 @@ sensitive information that no local detector recognizes.
 cargo fmt
 cargo test
 cargo clippy --all-targets -- -D warnings
+pwsh ./scripts/ci-smoke.ps1
+```
+
+On Windows without PowerShell Core installed, the smoke script also works with:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci-smoke.ps1
 ```
 
 ## License
