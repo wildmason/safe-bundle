@@ -95,7 +95,8 @@ safe-bundle completions powershell > safe-bundle.ps1
 - Before pasting logs or config into an LLM chat, run `scrub` with the
   `llm-prompt` profile and review the redacted text.
 - For CI, use `scrub --check` and optionally write SARIF for GitHub code
-  scanning.
+  scanning. Use `--fail-on validation-error` when a lane should reject invalid
+  declared JSON, JSONL, TOML, YAML, or env-like inputs.
 
 See [workflows](docs/WORKFLOWS.md) for copy-pasteable examples.
 

@@ -26,6 +26,8 @@ should be called out explicitly.
   policy counts.
 - `rules test --format <text|json|markdown>` for machine-readable detector
   fixture summaries.
+- `--fail-on validation-error` now fails when declared structured inputs are
+  invalid and reports validation error counts in summaries.
 - Provider detector coverage for GitLab, DigitalOcean, Hugging Face, Linear,
   Notion, Cloudflare, Atlassian/Jira, and Shopify tokens.
 - Package-manager recipe generation script and docs for Homebrew taps and Scoop

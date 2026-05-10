@@ -19,7 +19,9 @@ guarantee that an artifact is safe to publish without review.
   hashes, redaction event parseability, redaction counts, and logical bundle
   hash.
 - Valid JSON, JSONL, TOML, YAML, and env-like inputs are checked after redaction
-  so structure-breaking replacements fail.
+  so structure-breaking replacements fail. Invalid declared structured inputs
+  are counted in summaries and can fail automation with
+  `--fail-on validation-error`.
 - Binary, non-UTF-8, and over-limit files are skipped and listed for review.
 
 ## What You Must Still Review

@@ -2,7 +2,7 @@ use crate::archive::{BundleOptions, build_bundle, inspect_bundle, verify_bundle}
 use crate::config::{CONFIG_FILE_NAME, RuntimeConfig, starter_config_toml};
 use crate::detectors::detector_infos;
 use crate::engine::{Policy, Redactor};
-use crate::formats::validate_structure_preserved;
+use crate::formats::{StructureCheck, validate_structure_preserved};
 use crate::input::{InputOptions, collect_inputs, parse_size, read_stdin};
 use crate::model::{
     FailOn, InputFormat, PlaceholderStyle, Profile, RedactionSummary, SummaryFormat,
@@ -233,7 +233,12 @@ fn scrub(args: ScrubArgs) -> Result<()> {
         io::stdin().read_to_string(&mut input)?;
         let input = read_stdin(&input, args.shared.format);
         let document = redactor.redact_text(&input.content, &input.source_file, &input.format);
-        validate_structure_preserved(&input.format, &input.content, &document.redacted)?;
+        validate_structure_and_record(
+            &input.format,
+            &input.content,
+            &document.redacted,
+            &mut summary,
+        )?;
         summary.add_document(&document);
         documents.push((input.archive_path, document));
     }
@@ -249,10 +254,13 @@ fn scrub(args: ScrubArgs) -> Result<()> {
                 &input.format,
                 profile,
             );
-            validate_structure_preserved(&input.format, &input.content, &document.redacted)
-                .with_context(|| {
-                    format!("structured validation failed for {}", input.source_file)
-                })?;
+            validate_structure_and_record(
+                &input.format,
+                &input.content,
+                &document.redacted,
+                &mut summary,
+            )
+            .with_context(|| format!("structured validation failed for {}", input.source_file))?;
             summary.add_document(&document);
             documents.push((input.archive_path, document));
         }
@@ -335,10 +343,13 @@ fn bundle(args: BundleArgs) -> Result<()> {
                 &input.format,
                 profile,
             );
-            validate_structure_preserved(&input.format, &input.content, &document.redacted)
-                .with_context(|| {
-                    format!("structured validation failed for {}", input.source_file)
-                })?;
+            validate_structure_and_record(
+                &input.format,
+                &input.content,
+                &document.redacted,
+                &mut summary,
+            )
+            .with_context(|| format!("structured validation failed for {}", input.source_file))?;
             summary.add_document(&document);
         }
         summary.skipped_files = skipped.len();
@@ -499,10 +510,15 @@ fn rules(args: RulesArgs) -> Result<()> {
                     &input.format,
                     profile,
                 );
-                validate_structure_preserved(&input.format, &input.content, &document.redacted)
-                    .with_context(|| {
-                        format!("structured validation failed for {}", input.source_file)
-                    })?;
+                validate_structure_and_record(
+                    &input.format,
+                    &input.content,
+                    &document.redacted,
+                    &mut summary,
+                )
+                .with_context(|| {
+                    format!("structured validation failed for {}", input.source_file)
+                })?;
                 summary.add_document(&document);
             }
             summary.skipped_files = skipped.len();
@@ -666,6 +682,18 @@ fn write_sarif(path: &Path, events: &[crate::model::RedactionEvent]) -> Result<(
     Ok(())
 }
 
+fn validate_structure_and_record(
+    format: &str,
+    before: &str,
+    after: &str,
+    summary: &mut RedactionSummary,
+) -> Result<()> {
+    if validate_structure_preserved(format, before, after)? == StructureCheck::SourceInvalid {
+        summary.validation_errors += 1;
+    }
+    Ok(())
+}
+
 fn print_summary(
     format: SummaryFormat,
     summary: &RedactionSummary,
@@ -705,6 +733,9 @@ fn enforce_fail_on(fail_on: &[FailOn], summary: &RedactionSummary) -> Result<()>
             > 0
     {
         bail!("low-confidence findings were found and --fail-on low-confidence is set");
+    }
+    if fail_on.contains(&FailOn::ValidationError) && summary.validation_errors > 0 {
+        bail!("validation errors were found and --fail-on validation-error is set");
     }
     Ok(())
 }

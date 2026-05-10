@@ -44,6 +44,17 @@ safe-bundle scrub . \
   --sarif safe-bundle.sarif
 ```
 
+When a lane passes an explicit structured format, fail on invalid source files
+too:
+
+```sh
+safe-bundle scrub ./fixtures \
+  --format json \
+  --dry-run \
+  --fail-on validation-error \
+  --summary json
+```
+
 Upload the SARIF file with `github/codeql-action/upload-sarif@v4` when you want
 findings in GitHub code scanning.
 

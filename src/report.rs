@@ -13,6 +13,9 @@ pub fn summary_text(summary: &RedactionSummary) -> String {
         format!("Files skipped: {}", summary.skipped_files),
         format!("Redactions: {}", summary.redaction_count),
     ];
+    if summary.validation_errors > 0 {
+        lines.push(format!("Validation errors: {}", summary.validation_errors));
+    }
 
     if !summary.by_class.is_empty() {
         lines.push("Redactions by class:".to_string());
@@ -36,6 +39,12 @@ pub fn summary_markdown(summary: &RedactionSummary, skipped: &[SkippedFile]) -> 
     ));
     out.push_str(&format!("| Files skipped | {} |\n", summary.skipped_files));
     out.push_str(&format!("| Redactions | {} |\n", summary.redaction_count));
+    if summary.validation_errors > 0 {
+        out.push_str(&format!(
+            "| Validation errors | {} |\n",
+            summary.validation_errors
+        ));
+    }
 
     if !summary.by_class.is_empty() {
         out.push_str("\n## Redactions by Class\n\n");

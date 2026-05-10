@@ -16,6 +16,8 @@ $scrubEvents = Join-Path $smokeDir 'scrub-redactions.jsonl'
 $dryRunEvents = Join-Path $smokeDir 'dry-run-redactions.jsonl'
 $checkSarif = Join-Path $smokeDir 'safe-bundle.sarif'
 $cleanDir = Join-Path $smokeDir 'clean-input'
+$invalidJsonDir = Join-Path $smokeDir 'invalid-json'
+$invalidJsonPath = Join-Path $invalidJsonDir 'bad.json'
 $initConfigDir = Join-Path $smokeDir 'init-config'
 $initConfigPath = Join-Path $initConfigDir '.safe-bundle.toml'
 $badConfigPath = Join-Path $initConfigDir 'bad.safe-bundle.toml'
@@ -193,6 +195,25 @@ FEATURE_REQUIRED=false
 cargo run --quiet -- scrub $cleanDir --profile public-issue --check --exclude '**/.git/**' --summary json | Out-Null
 if ($LASTEXITCODE -ne 0) {
     throw 'scrub --check failed on a clean fixture'
+}
+New-Item -ItemType Directory -Path $invalidJsonDir | Out-Null
+'{"token":"ghp_abcdefghijklmnopqrstuvwxyz"' | Set-Content -NoNewline -LiteralPath $invalidJsonPath
+$invalidJsonSummary = cargo run --quiet -- scrub --format json --dry-run --summary json $invalidJsonPath | ConvertFrom-Json
+if ($invalidJsonSummary.validation_errors -ne 1) {
+    throw 'scrub did not report an invalid declared JSON source'
+}
+$previousErrorActionPreference = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
+$validationExitCode = $null
+try {
+    cargo run --quiet -- scrub --format json --dry-run --summary json --fail-on validation-error $invalidJsonPath 2>&1 | Out-Null
+    $validationExitCode = $LASTEXITCODE
+}
+finally {
+    $ErrorActionPreference = $previousErrorActionPreference
+}
+if ($validationExitCode -eq 0) {
+    throw 'scrub --fail-on validation-error accepted an invalid declared JSON source'
 }
 Write-Host '::endgroup::'
 

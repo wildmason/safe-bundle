@@ -286,6 +286,7 @@ pub struct RedactionSummary {
     pub redacted_files: usize,
     pub skipped_files: usize,
     pub redaction_count: usize,
+    pub validation_errors: usize,
     pub by_class: BTreeMap<String, usize>,
     pub by_confidence: BTreeMap<String, usize>,
 }

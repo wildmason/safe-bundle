@@ -1,6 +1,6 @@
 use crate::config::RuntimeConfig;
 use crate::engine::{Policy, Redactor, sha256_hex};
-use crate::formats::validate_structure_preserved;
+use crate::formats::{StructureCheck, validate_structure_preserved};
 use crate::input::{InputFile, collect_inputs};
 use crate::model::{
     InputFormat, PlaceholderStyle, PrivateRedactionEvent, Profile, RedactedDocument,
@@ -83,8 +83,14 @@ pub fn build_bundle(
             &input.format,
             profile,
         );
-        validate_structure_preserved(&input.format, &input.content, &document.redacted)
-            .with_context(|| format!("structured validation failed for {}", input.source_file))?;
+        let structure_check =
+            validate_structure_preserved(&input.format, &input.content, &document.redacted)
+                .with_context(|| {
+                    format!("structured validation failed for {}", input.source_file)
+                })?;
+        if structure_check == StructureCheck::SourceInvalid {
+            summary.validation_errors += 1;
+        }
         validate_redacted_output(&document, options.profile, options.placeholder_style)
             .with_context(|| {
                 format!("post-redaction validation failed for {}", input.source_file)
