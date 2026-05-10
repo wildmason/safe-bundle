@@ -1,0 +1,6 @@
+{
+  "api_key": "ghp_abcdefghijklmnopqrstuvwxyz",
+  "database_url": "postgres://app:supersecret@db.internal/app",
+  "contact": "matt@example.com",
+  "endpoint": "http://api.internal/v1/status"
+}

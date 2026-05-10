@@ -15,6 +15,8 @@ service.
 - `bundle` writes a `.zip` support bundle containing only redacted files.
 - `inspect` validates and summarizes a generated bundle.
 - `rules list` prints the built-in detector catalog.
+- Valid JSON, JSONL, TOML, YAML, and env inputs are checked after redaction so
+  structure-breaking replacements fail instead of producing broken artifacts.
 - Stable placeholders preserve debugging shape:
   `[REDACTED:SECRET.API_KEY:1]`.
 - Public redaction events never include raw secret values.
@@ -72,6 +74,14 @@ cargo run -- bundle fixtures/synthetic \
   --profile public-issue \
   --out target/support.safe-bundle.zip \
   --receipt target/private-redaction-receipt.json
+```
+
+Structured format smoke:
+
+```sh
+cargo run -- bundle fixtures/structured \
+  --profile public-issue \
+  --out target/structured.safe-bundle.zip
 ```
 
 Bundle layout:

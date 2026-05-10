@@ -6,6 +6,7 @@ Set-Location $repoRoot
 
 $smokeDir = Join-Path $repoRoot 'target/ci-smoke'
 $bundlePath = Join-Path $smokeDir 'support.safe-bundle.zip'
+$structuredBundlePath = Join-Path $smokeDir 'structured.safe-bundle.zip'
 $receiptPath = Join-Path $smokeDir 'private-redaction-receipt.json'
 $extractDir = Join-Path $smokeDir 'unzipped'
 $stdinOut = Join-Path $smokeDir 'stdin-redacted.txt'
@@ -47,6 +48,16 @@ $inspect | Write-Host
 $inspectText = $inspect -join "`n"
 if ($inspectText -notmatch 'Files: 3' -or $inspectText -notmatch 'Redactions: 10') {
     throw 'inspect output did not report the expected fixture counts'
+}
+Write-Host '::endgroup::'
+
+Write-Host '::group::structured bundle'
+cargo run --quiet -- bundle fixtures/structured --profile public-issue --out $structuredBundlePath
+$structuredInspect = cargo run --quiet -- inspect $structuredBundlePath --summary text
+$structuredInspect | Write-Host
+$structuredInspectText = $structuredInspect -join "`n"
+if ($structuredInspectText -notmatch 'Files: 4' -or $structuredInspectText -notmatch 'Redactions: 12') {
+    throw 'structured fixture inspect output did not report the expected counts'
 }
 Write-Host '::endgroup::'
 

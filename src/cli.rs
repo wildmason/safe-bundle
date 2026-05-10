@@ -1,6 +1,7 @@
 use crate::archive::{BundleOptions, build_bundle, inspect_bundle};
 use crate::detectors::detector_infos;
 use crate::engine::{Policy, Redactor};
+use crate::formats::validate_structure_preserved;
 use crate::input::{InputOptions, collect_inputs, parse_size, read_stdin};
 use crate::model::{
     FailOn, InputFormat, PlaceholderStyle, Profile, RedactionSummary, SummaryFormat,
@@ -148,6 +149,7 @@ fn scrub(args: ScrubArgs) -> Result<()> {
         io::stdin().read_to_string(&mut input)?;
         let input = read_stdin(&input, args.shared.format);
         let document = redactor.redact_text(&input.content, &input.source_file, &input.format);
+        validate_structure_preserved(&input.format, &input.content, &document.redacted)?;
         summary.add_document(&document);
         documents.push((input.archive_path, document));
     }
@@ -157,6 +159,10 @@ fn scrub(args: ScrubArgs) -> Result<()> {
         skipped.extend(skipped_files);
         for input in inputs {
             let document = redactor.redact_text(&input.content, &input.archive_path, &input.format);
+            validate_structure_preserved(&input.format, &input.content, &document.redacted)
+                .with_context(|| {
+                    format!("structured validation failed for {}", input.source_file)
+                })?;
             summary.add_document(&document);
             documents.push((input.archive_path, document));
         }
@@ -215,6 +221,10 @@ fn bundle(args: BundleArgs) -> Result<()> {
         let mut summary = RedactionSummary::default();
         for input in inputs {
             let document = redactor.redact_text(&input.content, &input.archive_path, &input.format);
+            validate_structure_preserved(&input.format, &input.content, &document.redacted)
+                .with_context(|| {
+                    format!("structured validation failed for {}", input.source_file)
+                })?;
             summary.add_document(&document);
         }
         summary.skipped_files = skipped.len();
@@ -323,6 +333,10 @@ fn rules(args: RulesArgs) -> Result<()> {
             for input in inputs {
                 let document =
                     redactor.redact_text(&input.content, &input.archive_path, &input.format);
+                validate_structure_preserved(&input.format, &input.content, &document.redacted)
+                    .with_context(|| {
+                        format!("structured validation failed for {}", input.source_file)
+                    })?;
                 summary.add_document(&document);
             }
             summary.skipped_files = skipped.len();

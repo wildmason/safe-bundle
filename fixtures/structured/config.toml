@@ -1,0 +1,3 @@
+api_key = "ghp_abcdefghijklmnopqrstuvwxyz"
+database_url = "postgres://app:supersecret@db.internal/app"
+home = "C:\\Users\\Matt\\AppData\\Local\\safe-bundle\\app.log"

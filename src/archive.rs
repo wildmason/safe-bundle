@@ -1,4 +1,5 @@
 use crate::engine::{Policy, Redactor, sha256_hex};
+use crate::formats::validate_structure_preserved;
 use crate::input::{InputFile, collect_inputs};
 use crate::model::{
     InputFormat, PlaceholderStyle, PrivateRedactionEvent, Profile, RedactedDocument,
@@ -62,6 +63,8 @@ pub fn build_bundle(
 
     for input in &inputs {
         let document = redactor.redact_text(&input.content, &input.archive_path, &input.format);
+        validate_structure_preserved(&input.format, &input.content, &document.redacted)
+            .with_context(|| format!("structured validation failed for {}", input.source_file))?;
         validate_redacted_output(&document, options.profile, options.placeholder_style)
             .with_context(|| {
                 format!("post-redaction validation failed for {}", input.source_file)
