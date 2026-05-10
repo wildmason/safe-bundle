@@ -12,6 +12,8 @@ $receiptPath = Join-Path $smokeDir 'private-redaction-receipt.json'
 $extractDir = Join-Path $smokeDir 'unzipped'
 $stdinOut = Join-Path $smokeDir 'stdin-redacted.txt'
 $scrubOut = Join-Path $smokeDir 'redacted-files'
+$scrubEvents = Join-Path $smokeDir 'scrub-redactions.jsonl'
+$dryRunEvents = Join-Path $smokeDir 'dry-run-redactions.jsonl'
 
 if (Test-Path -LiteralPath $smokeDir) {
     Remove-Item -LiteralPath $smokeDir -Recurse -Force
@@ -28,7 +30,16 @@ if ($rulesText -notmatch 'private-key-pem' -or $rulesText -notmatch 'github-toke
 Write-Host '::endgroup::'
 
 Write-Host '::group::scrub files'
-cargo run --quiet -- scrub fixtures/synthetic --profile public-issue --out $scrubOut --summary text
+cargo run --quiet -- scrub fixtures/synthetic --profile public-issue --out $scrubOut --events $scrubEvents --summary text
+$scrubEventsText = Get-Content -Raw -LiteralPath $scrubEvents
+if ($scrubEventsText -notmatch '"source_file":"synthetic/app\.env"' -or $scrubEventsText -notmatch '"detector_id":"github-token"') {
+    throw 'scrub --events did not emit expected public redaction metadata'
+}
+cargo run --quiet -- scrub fixtures/synthetic --profile public-issue --dry-run --events $dryRunEvents --summary json | Out-Null
+$dryRunEventsText = Get-Content -Raw -LiteralPath $dryRunEvents
+if ($dryRunEventsText -notmatch '"source_file":"synthetic/app\.env"' -or $dryRunEventsText -notmatch '"placeholder":"\[REDACTED:') {
+    throw 'scrub --dry-run --events did not emit expected public redaction metadata'
+}
 Write-Host '::endgroup::'
 
 Write-Host '::group::scrub stdin'
@@ -87,7 +98,7 @@ $forbidden = @(
 )
 
 $publicFiles = Get-ChildItem -LiteralPath $extractDir -Recurse -File
-$publicPaths = $publicFiles | ForEach-Object { $_.FullName }
+$publicPaths = @($publicFiles | ForEach-Object { $_.FullName }) + @($scrubEvents, $dryRunEvents)
 foreach ($needle in $forbidden) {
     $match = Select-String -Path $publicPaths -SimpleMatch -Pattern $needle -Quiet
     if ($match) {

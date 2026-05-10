@@ -6,7 +6,7 @@ use crate::input::{InputOptions, collect_inputs, parse_size, read_stdin};
 use crate::model::{
     FailOn, InputFormat, PlaceholderStyle, Profile, RedactionSummary, SummaryFormat,
 };
-use crate::report::{private_events_json, summary_markdown, summary_text};
+use crate::report::{events_jsonl, private_events_json, summary_markdown, summary_text};
 use anyhow::{Context, Result, bail};
 use clap::{Args, Parser, Subcommand};
 use std::fs;
@@ -81,6 +81,8 @@ struct ScrubArgs {
     out: Option<PathBuf>,
     #[arg(long)]
     receipt: Option<PathBuf>,
+    #[arg(long)]
+    events: Option<PathBuf>,
     #[arg(long, value_enum, default_value_t = SummaryFormat::Text)]
     summary: SummaryFormat,
     #[arg(long)]
@@ -183,6 +185,9 @@ fn scrub(args: ScrubArgs) -> Result<()> {
         .collect::<Vec<_>>();
 
     if args.dry_run {
+        if let Some(events_path) = args.events {
+            write_events(&events_path, &all_events)?;
+        }
         print_summary(args.summary, &summary, &skipped)?;
         enforce_fail_on(&args.shared.fail_on, &summary)?;
         return Ok(());
@@ -201,6 +206,9 @@ fn scrub(args: ScrubArgs) -> Result<()> {
     if let Some(receipt_path) = args.receipt {
         write_receipt(&receipt_path, &private_events)?;
     }
+    if let Some(events_path) = args.events {
+        write_events(&events_path, &all_events)?;
+    }
 
     if wrote_redacted_to_stdout {
         print_summary_stderr(args.summary, &summary, &skipped)?;
@@ -208,7 +216,9 @@ fn scrub(args: ScrubArgs) -> Result<()> {
         print_summary(args.summary, &summary, &skipped)?;
     }
     if !all_events.is_empty() {
-        eprintln!("Redaction event JSONL can be produced with bundle mode or --receipt metadata.");
+        eprintln!(
+            "Use --events for public redaction JSONL or --receipt for private hash metadata."
+        );
     }
     enforce_fail_on(&args.shared.fail_on, &summary)?;
     Ok(())
@@ -379,6 +389,15 @@ fn write_receipt(
         fs::create_dir_all(parent)?;
     }
     fs::write(path, private_events_json(private_events)?)
+        .with_context(|| format!("failed to write {}", path.display()))?;
+    Ok(())
+}
+
+fn write_events(path: &Path, events: &[crate::model::RedactionEvent]) -> Result<()> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(path, events_jsonl(events)?)
         .with_context(|| format!("failed to write {}", path.display()))?;
     Ok(())
 }

@@ -20,6 +20,8 @@ service.
 - Stable placeholders preserve debugging shape:
   `[REDACTED:SECRET.API_KEY:1]`.
 - Public redaction events never include raw secret values.
+- `scrub --events` writes public JSONL finding metadata without building a
+  bundle.
 - Optional private receipts store hashes and source spans for sender-side
   correlation without copying raw secrets.
 
@@ -67,6 +69,15 @@ Write a private receipt:
 cargo run -- scrub fixtures/synthetic \
   --out target/redacted \
   --receipt target/private-redaction-receipt.json
+```
+
+Write public finding metadata for CI or review:
+
+```sh
+cargo run -- scrub fixtures/synthetic \
+  --dry-run \
+  --events target/redactions.jsonl \
+  --summary json
 ```
 
 ## Build a Support Bundle
