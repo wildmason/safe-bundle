@@ -2,7 +2,7 @@ use crate::detectors::{Allowlist, CustomDetectorDefinition, DetectorSet, detecto
 use crate::model::{Confidence, Profile, RedactionClass};
 use anyhow::{Context, Result, bail};
 use globset::{Glob, GlobSet, GlobSetBuilder};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -78,6 +78,26 @@ pub struct RuntimeConfig {
     pub loaded_from: Option<PathBuf>,
     pub detector_set: DetectorSet,
     path_overrides: Vec<PathProfileOverride>,
+    stats: RuntimeConfigStats,
+}
+
+#[derive(Clone, Debug, Default)]
+struct RuntimeConfigStats {
+    custom_detector_count: usize,
+    allowlist_literal_count: usize,
+    allowlist_regex_count: usize,
+    path_override_count: usize,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct RuntimeConfigSummary {
+    pub loaded_from: Option<PathBuf>,
+    pub built_in_detector_count: usize,
+    pub custom_detector_count: usize,
+    pub total_detector_count: usize,
+    pub allowlist_literal_count: usize,
+    pub allowlist_regex_count: usize,
+    pub path_override_count: usize,
 }
 
 #[derive(Debug)]
@@ -92,6 +112,7 @@ impl RuntimeConfig {
             loaded_from: None,
             detector_set: DetectorSet::default(),
             path_overrides: Vec::new(),
+            stats: RuntimeConfigStats::default(),
         }
     }
 
@@ -121,6 +142,11 @@ impl RuntimeConfig {
             }
         }
 
+        let custom_detector_count = config.custom_detectors.len();
+        let allowlist_literal_count = config.allowlist.literals.len();
+        let allowlist_regex_count = config.allowlist.regexes.len();
+        let path_override_count = config.path_overrides.len();
+
         let custom = validate_custom_detectors(config.custom_detectors)?;
         let allowlist = Allowlist::new(config.allowlist.literals, config.allowlist.regexes)?;
         let detector_set = DetectorSet::new(custom, allowlist)?;
@@ -134,6 +160,12 @@ impl RuntimeConfig {
             loaded_from,
             detector_set,
             path_overrides,
+            stats: RuntimeConfigStats {
+                custom_detector_count,
+                allowlist_literal_count,
+                allowlist_regex_count,
+                path_override_count,
+            },
         })
     }
 
@@ -143,6 +175,19 @@ impl RuntimeConfig {
             .find(|override_rule| override_rule.matcher.is_match(archive_path))
             .map(|override_rule| override_rule.profile)
             .unwrap_or(default)
+    }
+
+    pub fn summary(&self) -> RuntimeConfigSummary {
+        let built_in_detector_count = detector_infos().len();
+        RuntimeConfigSummary {
+            loaded_from: self.loaded_from.clone(),
+            built_in_detector_count,
+            custom_detector_count: self.stats.custom_detector_count,
+            total_detector_count: self.detector_set.detector_infos().len(),
+            allowlist_literal_count: self.stats.allowlist_literal_count,
+            allowlist_regex_count: self.stats.allowlist_regex_count,
+            path_override_count: self.stats.path_override_count,
+        }
     }
 }
 
@@ -316,5 +361,46 @@ mystery = true
             config.profile_for_path("anything.env", Profile::PublicIssue),
             Profile::PublicIssue
         );
+    }
+
+    #[test]
+    fn reports_config_summary_counts() {
+        let config = RuntimeConfig::from_toml(
+            r#"
+version = 1
+
+[allowlist]
+literals = ["ticket_keep_this_value"]
+regexes = ["SAFE-[0-9]+"]
+
+[[custom_detectors]]
+id = "ticket-token"
+pattern = "ticket_[A-Za-z0-9_]{12,}"
+class = "secret.api_key"
+confidence = "high"
+reason = "ticket fixture token"
+
+[[path_overrides]]
+pattern = "public/**"
+profile = "internal"
+"#,
+            Some(PathBuf::from(".safe-bundle.toml")),
+        )
+        .unwrap();
+
+        let summary = config.summary();
+
+        assert_eq!(
+            summary.loaded_from,
+            Some(PathBuf::from(".safe-bundle.toml"))
+        );
+        assert_eq!(summary.custom_detector_count, 1);
+        assert_eq!(
+            summary.total_detector_count,
+            summary.built_in_detector_count + 1
+        );
+        assert_eq!(summary.allowlist_literal_count, 1);
+        assert_eq!(summary.allowlist_regex_count, 1);
+        assert_eq!(summary.path_override_count, 1);
     }
 }

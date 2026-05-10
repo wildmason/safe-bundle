@@ -106,6 +106,7 @@ For a repository-local policy file:
 ```sh
 safe-bundle config init
 safe-bundle config validate --require
+safe-bundle config inspect
 ```
 
 Commit `.safe-bundle.toml` when the allowlist, custom detectors, or path

@@ -178,6 +178,7 @@ enum RulesCommand {
 enum ConfigCommand {
     Init(ConfigInitArgs),
     Validate(ConfigValidateArgs),
+    Inspect(ConfigInspectArgs),
 }
 
 #[derive(Debug, Args)]
@@ -194,6 +195,16 @@ struct ConfigValidateArgs {
     path: Option<PathBuf>,
     #[arg(long)]
     require: bool,
+}
+
+#[derive(Debug, Args)]
+struct ConfigInspectArgs {
+    #[arg(long)]
+    path: Option<PathBuf>,
+    #[arg(long)]
+    require: bool,
+    #[arg(long, value_enum, default_value_t = SummaryFormat::Text)]
+    format: SummaryFormat,
 }
 
 pub fn run() -> Result<()> {
@@ -502,6 +513,7 @@ fn config(args: ConfigArgs) -> Result<()> {
     match args.command {
         ConfigCommand::Init(args) => config_init(args),
         ConfigCommand::Validate(args) => config_validate(args),
+        ConfigCommand::Inspect(args) => config_inspect(args),
     }
 }
 
@@ -544,6 +556,50 @@ fn config_validate(args: ConfigValidateArgs) -> Result<()> {
             Ok(())
         }
     }
+}
+
+fn config_inspect(args: ConfigInspectArgs) -> Result<()> {
+    let config = RuntimeConfig::load(args.path.as_deref(), false)?;
+    if config.loaded_from.is_none() && args.require {
+        bail!("no {CONFIG_FILE_NAME} found; pass --path or run config init");
+    }
+
+    let summary = config.summary();
+    match args.format {
+        SummaryFormat::Json => println!("{}", serde_json::to_string_pretty(&summary)?),
+        SummaryFormat::Markdown => {
+            println!("# safe-bundle config\n");
+            match &summary.loaded_from {
+                Some(path) => println!("- Config: `{}`", path.display()),
+                None => println!("- Config: none"),
+            }
+            println!(
+                "- Built-in detectors: `{}`",
+                summary.built_in_detector_count
+            );
+            println!("- Custom detectors: `{}`", summary.custom_detector_count);
+            println!("- Total detectors: `{}`", summary.total_detector_count);
+            println!(
+                "- Allowlist literals: `{}`",
+                summary.allowlist_literal_count
+            );
+            println!("- Allowlist regexes: `{}`", summary.allowlist_regex_count);
+            println!("- Path overrides: `{}`", summary.path_override_count);
+        }
+        SummaryFormat::Text => {
+            match &summary.loaded_from {
+                Some(path) => println!("Config: {}", path.display()),
+                None => println!("Config: none"),
+            }
+            println!("Built-in detectors: {}", summary.built_in_detector_count);
+            println!("Custom detectors: {}", summary.custom_detector_count);
+            println!("Total detectors: {}", summary.total_detector_count);
+            println!("Allowlist literals: {}", summary.allowlist_literal_count);
+            println!("Allowlist regexes: {}", summary.allowlist_regex_count);
+            println!("Path overrides: {}", summary.path_override_count);
+        }
+    }
+    Ok(())
 }
 
 fn completions(args: CompletionsArgs) -> Result<()> {

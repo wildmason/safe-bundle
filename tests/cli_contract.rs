@@ -23,6 +23,7 @@ fn config_command_exposes_init_workflow() {
 
     assert!(help.contains("init"));
     assert!(help.contains("validate"));
+    assert!(help.contains("inspect"));
 
     let init_help = nested_subcommand_help("config", "init");
     assert!(init_help.contains("--path"));
@@ -31,6 +32,11 @@ fn config_command_exposes_init_workflow() {
     let validate_help = nested_subcommand_help("config", "validate");
     assert!(validate_help.contains("--path"));
     assert!(validate_help.contains("--require"));
+
+    let inspect_help = nested_subcommand_help("config", "inspect");
+    assert!(inspect_help.contains("--path"));
+    assert!(inspect_help.contains("--require"));
+    assert!(inspect_help.contains("--format"));
 }
 
 #[test]

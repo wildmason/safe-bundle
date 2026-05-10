@@ -46,6 +46,24 @@ safe-bundle config validate --path path/to/.safe-bundle.toml
 `--require` makes the command fail when discovery does not find a config. An
 explicit `--path` already fails if the file cannot be read or parsed.
 
+## Inspect
+
+Inspect the discovered repository config:
+
+```sh
+safe-bundle config inspect
+```
+
+Inspect an explicit file as JSON:
+
+```sh
+safe-bundle config inspect --path path/to/.safe-bundle.toml --format json
+```
+
+The report includes the loaded path, built-in detector count, custom detector
+count, allowlist literal and regex counts, and path override count. Pass
+`--require` to fail when discovery does not find a config.
+
 ## Example
 
 ```toml

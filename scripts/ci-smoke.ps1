@@ -115,6 +115,16 @@ $validateText = $validateOutput -join "`n"
 if ($validateText -notmatch 'Valid config') {
     throw 'config validate did not accept the generated starter config'
 }
+$configInspect = cargo run --quiet -- config inspect --path $initConfigPath --format json | ConvertFrom-Json
+if (
+    -not $configInspect.loaded_from -or
+    $configInspect.built_in_detector_count -lt 1 -or
+    $configInspect.custom_detector_count -ne 0 -or
+    $configInspect.allowlist_literal_count -ne 0 -or
+    $configInspect.path_override_count -ne 0
+) {
+    throw 'config inspect did not report expected starter config counts'
+}
 'version = 2' | Set-Content -NoNewline -LiteralPath $badConfigPath
 $previousErrorActionPreference = $ErrorActionPreference
 $ErrorActionPreference = 'Continue'

@@ -109,6 +109,7 @@ Create a starter policy file:
 ```sh
 safe-bundle config init
 safe-bundle config validate --require
+safe-bundle config inspect
 ```
 
 ```toml

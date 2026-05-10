@@ -22,6 +22,8 @@ should be called out explicitly.
   policy.
 - `config validate` command for checking discovered or explicit repository
   policy before running a scrub.
+- `config inspect` command for summarizing discovered or explicit repository
+  policy counts.
 - Package-manager recipe generation script and docs for Homebrew taps and Scoop
   buckets backed by GitHub Release assets.
 - Offline sidecar mode and smoke coverage for package-manager recipe
