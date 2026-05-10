@@ -1,4 +1,4 @@
-use crate::detectors::{Candidate, detect};
+use crate::detectors::{Candidate, DetectorSet};
 use crate::model::{
     Confidence, PlaceholderStyle, PrivateRedactionEvent, Profile, RedactedDocument, RedactionClass,
     RedactionEvent, SourceSpan,
@@ -47,14 +47,20 @@ impl Policy {
 #[derive(Debug)]
 pub struct Redactor {
     policy: Policy,
+    detectors: DetectorSet,
     placeholders: PlaceholderAllocator,
     next_event_id: usize,
 }
 
 impl Redactor {
     pub fn new(policy: Policy) -> Self {
+        Self::with_detectors(policy, DetectorSet::default())
+    }
+
+    pub fn with_detectors(policy: Policy, detectors: DetectorSet) -> Self {
         Self {
             policy: policy.clone(),
+            detectors,
             placeholders: PlaceholderAllocator::new(policy.placeholder_style),
             next_event_id: 1,
         }
@@ -66,12 +72,27 @@ impl Redactor {
         source_file: impl Into<String>,
         source_format: impl Into<String>,
     ) -> RedactedDocument {
+        self.redact_text_with_profile(text, source_file, source_format, self.policy.profile)
+    }
+
+    pub fn redact_text_with_profile(
+        &mut self,
+        text: &str,
+        source_file: impl Into<String>,
+        source_format: impl Into<String>,
+        profile: Profile,
+    ) -> RedactedDocument {
         let source_file = source_file.into();
         let source_format = source_format.into();
+        let policy = Policy {
+            profile,
+            placeholder_style: self.policy.placeholder_style,
+        };
         let candidates = resolve_overlaps(
-            detect(text)
+            self.detectors
+                .detect(text)
                 .into_iter()
-                .filter(|candidate| self.policy.should_redact(candidate))
+                .filter(|candidate| policy.should_redact(candidate))
                 .collect(),
         );
 
@@ -101,9 +122,9 @@ impl Redactor {
                 placeholder: placeholder.clone(),
                 class: candidate.class,
                 confidence: candidate.confidence,
-                detector_id: candidate.detector_id.to_string(),
-                detector_version: candidate.detector_version.to_string(),
-                reason: candidate.reason.to_string(),
+                detector_id: candidate.detector_id.clone(),
+                detector_version: candidate.detector_version.clone(),
+                reason: candidate.reason.clone(),
                 source_file: source_file.clone(),
                 source_format: source_format.clone(),
                 original_span: SourceSpan {
@@ -123,7 +144,7 @@ impl Redactor {
                 redaction_id,
                 placeholder,
                 class: candidate.class,
-                detector_id: candidate.detector_id.to_string(),
+                detector_id: candidate.detector_id,
                 source_file: source_file.clone(),
                 original_span: SourceSpan {
                     start: candidate.start,
@@ -199,7 +220,7 @@ fn resolve_overlaps(mut candidates: Vec<Candidate>) -> Vec<Candidate> {
             Reverse(candidate.confidence.rank()),
             Reverse(candidate.specificity),
             Reverse(candidate.end.saturating_sub(candidate.start)),
-            candidate.detector_id,
+            candidate.detector_id.clone(),
         )
     });
 

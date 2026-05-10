@@ -1,3 +1,4 @@
+use crate::config::RuntimeConfig;
 use crate::engine::{Policy, Redactor, sha256_hex};
 use crate::formats::validate_structure_preserved;
 use crate::input::{InputFile, collect_inputs};
@@ -15,11 +16,12 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use zip::write::SimpleFileOptions;
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct BundleOptions {
     pub profile: Profile,
     pub placeholder_style: PlaceholderStyle,
     pub input_options: crate::input::InputOptions,
+    pub runtime_config: RuntimeConfig,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -49,20 +51,38 @@ pub struct BundleResult {
     pub private_events: Vec<PrivateRedactionEvent>,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct BundleVerification {
+    pub manifest: Manifest,
+    pub verified_file_count: usize,
+    pub verified_redaction_count: usize,
+}
+
 pub fn build_bundle(
     input_roots: &[PathBuf],
     output: &Path,
     options: BundleOptions,
 ) -> Result<BundleResult> {
     let (inputs, mut skipped) = collect_inputs(input_roots, &options.input_options)?;
-    let mut redactor = Redactor::new(Policy::new(options.profile, options.placeholder_style));
+    let mut redactor = Redactor::with_detectors(
+        Policy::new(options.profile, options.placeholder_style),
+        options.runtime_config.detector_set.clone(),
+    );
     let mut documents = Vec::new();
     let mut events = Vec::new();
     let mut private_events = Vec::new();
     let mut summary = RedactionSummary::default();
 
     for input in &inputs {
-        let document = redactor.redact_text(&input.content, &input.archive_path, &input.format);
+        let profile = options
+            .runtime_config
+            .profile_for_path(&input.archive_path, options.profile);
+        let document = redactor.redact_text_with_profile(
+            &input.content,
+            &input.archive_path,
+            &input.format,
+            profile,
+        );
         validate_structure_preserved(&input.format, &input.content, &document.redacted)
             .with_context(|| format!("structured validation failed for {}", input.source_file))?;
         validate_redacted_output(&document, options.profile, options.placeholder_style)
@@ -133,8 +153,67 @@ pub fn build_bundle(
 }
 
 pub fn inspect_bundle(path: &Path) -> Result<Manifest> {
+    let mut archive = open_bundle(path)?;
+    require_bundle_entries(&mut archive)?;
+    read_manifest(&mut archive)
+}
+
+pub fn verify_bundle(path: &Path) -> Result<BundleVerification> {
+    let mut archive = open_bundle(path)?;
+    require_bundle_entries(&mut archive)?;
+    let manifest = read_manifest(&mut archive)?;
+    if manifest.schema_version != "1" {
+        bail!(
+            "unsupported bundle schema version {}",
+            manifest.schema_version
+        );
+    }
+
+    let checksums = read_string(&mut archive, "checksums.sha256")?;
+    let parsed_checksums = parse_checksums(&checksums)?;
+    if parsed_checksums != manifest.redacted_output_hashes {
+        bail!("checksums.sha256 does not match manifest redacted_output_hashes");
+    }
+
+    for (path, expected_hash) in &manifest.redacted_output_hashes {
+        let mut file = archive
+            .by_name(path)
+            .with_context(|| format!("bundle is missing redacted file {path}"))?;
+        let mut bytes = Vec::new();
+        file.read_to_end(&mut bytes)?;
+        let actual_hash = sha256_hex(&bytes);
+        if &actual_hash != expected_hash {
+            bail!("checksum mismatch for {path}");
+        }
+    }
+
+    let redactions = read_string(&mut archive, "redactions.jsonl")?;
+    let events = parse_redactions_jsonl(&redactions)?;
+    let logical_hash = logical_bundle_hash(&manifest.redacted_output_hashes, &events);
+    if logical_hash != manifest.bundle_hash {
+        bail!("bundle_hash does not match manifest files and redactions");
+    }
+    if events.len() != manifest.redaction_count {
+        bail!(
+            "manifest redaction_count {} does not match redactions.jsonl count {}",
+            manifest.redaction_count,
+            events.len()
+        );
+    }
+
+    Ok(BundleVerification {
+        verified_file_count: manifest.redacted_output_hashes.len(),
+        verified_redaction_count: events.len(),
+        manifest,
+    })
+}
+
+fn open_bundle(path: &Path) -> Result<zip::ZipArchive<File>> {
     let file = File::open(path).with_context(|| format!("failed to open {}", path.display()))?;
-    let mut archive = zip::ZipArchive::new(file)?;
+    Ok(zip::ZipArchive::new(file)?)
+}
+
+fn require_bundle_entries(archive: &mut zip::ZipArchive<File>) -> Result<()> {
     for required in [
         "manifest.json",
         "summary.md",
@@ -147,11 +226,49 @@ pub fn inspect_bundle(path: &Path) -> Result<Manifest> {
             .by_name(required)
             .with_context(|| format!("bundle is missing {required}"))?;
     }
+    Ok(())
+}
 
-    let mut manifest_file = archive.by_name("manifest.json")?;
-    let mut manifest_json = String::new();
-    manifest_file.read_to_string(&mut manifest_json)?;
+fn read_manifest(archive: &mut zip::ZipArchive<File>) -> Result<Manifest> {
+    let manifest_json = read_string(archive, "manifest.json")?;
     Ok(serde_json::from_str(&manifest_json)?)
+}
+
+fn read_string(archive: &mut zip::ZipArchive<File>, name: &str) -> Result<String> {
+    let mut file = archive.by_name(name)?;
+    let mut content = String::new();
+    file.read_to_string(&mut content)?;
+    Ok(content)
+}
+
+fn parse_checksums(input: &str) -> Result<BTreeMap<String, String>> {
+    let mut checksums = BTreeMap::new();
+    for (index, line) in input.lines().enumerate() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        let Some((hash, path)) = trimmed.split_once("  ") else {
+            bail!("invalid checksums.sha256 line {}", index + 1);
+        };
+        checksums.insert(path.to_string(), hash.to_string());
+    }
+    Ok(checksums)
+}
+
+fn parse_redactions_jsonl(input: &str) -> Result<Vec<RedactionEvent>> {
+    let mut events = Vec::new();
+    for (index, line) in input.lines().enumerate() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        events.push(
+            serde_json::from_str(trimmed)
+                .with_context(|| format!("invalid redactions.jsonl line {}", index + 1))?,
+        );
+    }
+    Ok(events)
 }
 
 fn write_zip(
@@ -318,6 +435,7 @@ mod tests {
                 profile: Profile::Support,
                 placeholder_style: PlaceholderStyle::Bracket,
                 input_options: InputOptions::default(),
+                runtime_config: RuntimeConfig::empty(),
             },
         )
         .unwrap();
@@ -345,5 +463,88 @@ mod tests {
         assert!(!redactions.contains("ghp_abcdefghijklmnopqrstuvwxyz"));
         assert!(redactions.contains(r#""source_file":"logs/app.env""#));
         assert!(!redactions.contains(&temp.path().display().to_string()));
+    }
+
+    #[test]
+    fn verify_bundle_accepts_valid_bundle() {
+        let temp = tempfile::tempdir().unwrap();
+        let input = temp.path().join("logs");
+        fs::create_dir_all(&input).unwrap();
+        fs::write(
+            input.join("app.env"),
+            "API_KEY=ghp_abcdefghijklmnopqrstuvwxyz\n",
+        )
+        .unwrap();
+
+        let output = temp.path().join("support.safe-bundle.zip");
+        build_bundle(
+            &[input],
+            &output,
+            BundleOptions {
+                profile: Profile::PublicIssue,
+                placeholder_style: PlaceholderStyle::Bracket,
+                input_options: InputOptions::default(),
+                runtime_config: RuntimeConfig::empty(),
+            },
+        )
+        .unwrap();
+
+        let verification = verify_bundle(&output).unwrap();
+        assert_eq!(verification.verified_file_count, 1);
+        assert_eq!(verification.verified_redaction_count, 1);
+    }
+
+    #[test]
+    fn verify_bundle_rejects_checksum_mismatch() {
+        let temp = tempfile::tempdir().unwrap();
+        let output = temp.path().join("broken.safe-bundle.zip");
+        let mut hashes = BTreeMap::new();
+        hashes.insert("files/example.txt".to_string(), "deadbeef".to_string());
+        let manifest = Manifest {
+            schema_version: "1".to_string(),
+            tool_name: "safe-bundle".to_string(),
+            tool_version: "0.0.0-test".to_string(),
+            created_at: "2026-05-10T00:00:00Z".to_string(),
+            profile: "public-issue".to_string(),
+            policy: "built-in".to_string(),
+            input_roots: vec!["example".to_string()],
+            file_count: 1,
+            redacted_file_count: 0,
+            skipped_file_count: 0,
+            redaction_count: 0,
+            classes: BTreeMap::new(),
+            redacted_output_hashes: hashes,
+            bundle_hash: "not-a-real-logical-hash".to_string(),
+        };
+        let input = InputFile {
+            absolute_path: PathBuf::from("example.txt"),
+            source_file: "example.txt".to_string(),
+            archive_path: "example.txt".to_string(),
+            format: "text".to_string(),
+            content: "plain".to_string(),
+        };
+        let document = RedactedDocument {
+            source_file: "example.txt".to_string(),
+            source_format: "text".to_string(),
+            original_len: 5,
+            redacted: "plain".to_string(),
+            events: Vec::new(),
+            private_events: Vec::new(),
+        };
+        write_zip(
+            &output,
+            &manifest,
+            &RedactionSummary {
+                scanned_files: 1,
+                ..RedactionSummary::default()
+            },
+            &mut [],
+            &[(input, document)],
+            &[],
+        )
+        .unwrap();
+
+        let err = verify_bundle(&output).unwrap_err().to_string();
+        assert!(err.contains("checksum mismatch"));
     }
 }

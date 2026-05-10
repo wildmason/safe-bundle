@@ -13,9 +13,16 @@ should be called out explicitly.
 - Golden detector corpus under `fixtures/golden/`, with integration tests that
   assert expected redactions, preserved benign config values, structured-output
   validity, and no raw fixture values in public event JSON.
+- `.safe-bundle.toml` repository policy loading, including explicit
+  `--config`, `--no-config`, allowlist literals/regexes, custom detectors, and
+  first-match per-path profile overrides.
+- `inspect --verify` for bundle schema, checksum, redaction JSONL, and logical
+  bundle-hash validation.
 - Provider detector coverage for AWS secret/session tokens, escaped PEM private
   keys in JSON strings, Stripe webhook secrets, SendGrid, Datadog, Netlify,
   Vercel, Postmark, Sentry, Supabase service-role keys, and Twilio auth tokens.
+- `docs/CONFIG.md` documenting repository policy configuration.
+- `docs/BUNDLE_FORMAT.md` documenting the schema-v1 bundle contract.
 - `docs/ROADMAP.md` documenting the 0.2-to-1.0 release ladder.
 
 ### Changed

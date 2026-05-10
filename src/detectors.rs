@@ -1,4 +1,5 @@
 use crate::model::{Confidence, DetectorInfo, RedactionClass};
+use anyhow::{Context, Result};
 use regex::Regex;
 use std::collections::BTreeMap;
 use std::sync::LazyLock;
@@ -8,16 +9,16 @@ pub struct Candidate {
     pub class: RedactionClass,
     pub confidence: Confidence,
     pub specificity: u8,
-    pub detector_id: &'static str,
-    pub detector_version: &'static str,
-    pub reason: &'static str,
+    pub detector_id: String,
+    pub detector_version: String,
+    pub reason: String,
     pub start: usize,
     pub end: usize,
     pub raw: String,
     pub context: BTreeMap<String, String>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct Detector {
     info: DetectorInfo,
     regex: Regex,
@@ -28,20 +29,20 @@ struct Detector {
 
 impl Detector {
     fn new(
-        id: &'static str,
+        id: impl Into<String>,
         class: RedactionClass,
         confidence: Confidence,
-        reason: &'static str,
+        reason: impl Into<String>,
         pattern: &str,
         capture_group: usize,
     ) -> Self {
         Self {
             info: DetectorInfo {
-                id,
-                version: "1",
+                id: id.into(),
+                version: "1".to_string(),
                 class,
                 confidence,
-                reason,
+                reason: reason.into(),
             },
             regex: Regex::new(pattern).expect("detector regex must compile"),
             capture_group,
@@ -58,6 +59,89 @@ impl Detector {
     fn with_specificity(mut self, specificity: u8) -> Self {
         self.specificity = specificity;
         self
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct CustomDetectorDefinition {
+    pub id: String,
+    pub pattern: String,
+    pub class: RedactionClass,
+    pub confidence: Confidence,
+    pub reason: String,
+    pub capture_group: usize,
+    pub context_key_group: Option<usize>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct Allowlist {
+    literals: Vec<String>,
+    regexes: Vec<Regex>,
+}
+
+impl Allowlist {
+    pub fn new(literals: Vec<String>, regex_patterns: Vec<String>) -> Result<Self> {
+        let regexes = regex_patterns
+            .into_iter()
+            .map(|pattern| {
+                Regex::new(&pattern)
+                    .with_context(|| format!("invalid allowlist regex pattern {pattern}"))
+            })
+            .collect::<Result<Vec<_>>>()?;
+        Ok(Self { literals, regexes })
+    }
+
+    fn is_allowed(&self, raw: &str) -> bool {
+        self.literals.iter().any(|literal| literal == raw)
+            || self.regexes.iter().any(|regex| regex.is_match(raw))
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct DetectorSet {
+    custom: Vec<Detector>,
+    allowlist: Allowlist,
+}
+
+impl DetectorSet {
+    pub fn new(custom: Vec<CustomDetectorDefinition>, allowlist: Allowlist) -> Result<Self> {
+        let custom = custom
+            .into_iter()
+            .map(Detector::from_custom)
+            .collect::<Result<Vec<_>>>()?;
+        Ok(Self { custom, allowlist })
+    }
+
+    pub fn detector_infos(&self) -> Vec<DetectorInfo> {
+        DETECTORS
+            .iter()
+            .chain(self.custom.iter())
+            .map(|detector| detector.info.clone())
+            .collect()
+    }
+
+    pub fn detect(&self, text: &str) -> Vec<Candidate> {
+        detect_with(text, self.custom.iter(), &self.allowlist)
+    }
+}
+
+impl Detector {
+    fn from_custom(definition: CustomDetectorDefinition) -> Result<Self> {
+        let regex = Regex::new(&definition.pattern)
+            .with_context(|| format!("invalid custom detector regex {}", definition.id))?;
+        Ok(Self {
+            info: DetectorInfo {
+                id: definition.id,
+                version: "custom".to_string(),
+                class: definition.class,
+                confidence: definition.confidence,
+                reason: definition.reason,
+            },
+            regex,
+            capture_group: definition.capture_group,
+            context_key_group: definition.context_key_group,
+            specificity: 40,
+        })
     }
 }
 
@@ -104,7 +188,8 @@ static DETECTORS: LazyLock<Vec<Detector>> = LazyLock::new(|| {
             r#"(?i)\b(database_url|postgres_url|postgresql_url|mysql_url|mongodb_url|redis_url|amqp_url|smtp_url)\b\s*[:=]\s*['"]?([^\s'",;]+)"#,
             2,
         )
-        .with_context_key_group(1),
+        .with_context_key_group(1)
+        .with_specificity(20),
         Detector::new(
             "connection-string",
             RedactionClass::SecretConnectionString,
@@ -126,10 +211,19 @@ static DETECTORS: LazyLock<Vec<Detector>> = LazyLock::new(|| {
             RedactionClass::SecretPassword,
             Confidence::High,
             "secret-like key/value assignment",
-            r#"(?i)\b([A-Za-z0-9_.-]*(?:password|passwd|pwd|token|api[_-]?key|secret|client_secret|access_token|refresh_token|session|cookie|webhook_secret))\b\s*[:=]\s*['"]?([^\s'",;{}\[\]]{4,})"#,
+            r#"(?i)\b([A-Za-z0-9_.-]*(?:password|passwd|pwd|token|api[_-]?key|secret|client_secret|access_token|refresh_token|session|cookie|webhook_secret))\b['"]?\s*[:=]\s*['"]?([^\s'",;{}\[\]]{4,})"#,
             2,
         )
         .with_context_key_group(1),
+        Detector::new(
+            "secret-header-value",
+            RedactionClass::SecretApiKey,
+            Confidence::High,
+            "secret-like HTTP/HAR header value",
+            r#"(?i)"name"\s*:\s*"[^"]*(?:api[-_]?key|token|secret)[^"]*"\s*,\s*"value"\s*:\s*"([^"]{8,})""#,
+            1,
+        )
+        .with_specificity(20),
         Detector::new(
             "aws-access-key",
             RedactionClass::SecretCloudCredential,
@@ -360,6 +454,15 @@ static DETECTORS: LazyLock<Vec<Detector>> = LazyLock::new(|| {
             1,
         ),
         Detector::new(
+            "escaped-windows-user-path",
+            RedactionClass::IdentityLocalUser,
+            Confidence::High,
+            "escaped Windows user profile path",
+            r"(?i)\b[A-Z]:\\\\Users\\\\([^\\\r\n]+)",
+            1,
+        )
+        .with_specificity(20),
+        Detector::new(
             "unix-home-path",
             RedactionClass::IdentityLocalUser,
             Confidence::High,
@@ -395,22 +498,30 @@ static DETECTORS: LazyLock<Vec<Detector>> = LazyLock::new(|| {
 });
 
 pub fn detector_infos() -> Vec<DetectorInfo> {
-    DETECTORS
-        .iter()
-        .map(|detector| detector.info.clone())
-        .collect()
+    DetectorSet::default().detector_infos()
 }
 
 pub fn detect(text: &str) -> Vec<Candidate> {
+    DetectorSet::default().detect(text)
+}
+
+fn detect_with<'a>(
+    text: &str,
+    custom: impl Iterator<Item = &'a Detector>,
+    allowlist: &Allowlist,
+) -> Vec<Candidate> {
     let mut candidates = Vec::new();
 
-    for detector in DETECTORS.iter() {
+    for detector in DETECTORS.iter().chain(custom) {
         for captures in detector.regex.captures_iter(text) {
             let Some(matched) = captures.get(detector.capture_group) else {
                 continue;
             };
             let raw = matched.as_str();
             if raw.is_empty() || raw.starts_with("[REDACTED:") {
+                continue;
+            }
+            if allowlist.is_allowed(raw) {
                 continue;
             }
 
@@ -431,9 +542,9 @@ pub fn detect(text: &str) -> Vec<Candidate> {
                 class: detector.info.class,
                 confidence: detector.info.confidence,
                 specificity: detector.specificity,
-                detector_id: detector.info.id,
-                detector_version: detector.info.version,
-                reason: detector.info.reason,
+                detector_id: detector.info.id.clone(),
+                detector_version: detector.info.version.clone(),
+                reason: detector.info.reason.clone(),
                 start: matched.start(),
                 end: matched.end(),
                 raw: raw.to_string(),
@@ -587,7 +698,7 @@ mod tests {
         let found = detect(&input);
         let ids = found
             .iter()
-            .map(|candidate| candidate.detector_id)
+            .map(|candidate| candidate.detector_id.as_str())
             .collect::<Vec<_>>();
 
         for expected in [

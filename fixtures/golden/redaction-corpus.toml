@@ -155,6 +155,196 @@ service:
   retries: 2
 '''
 
+[[cases]]
+id = "jsonl-ci-events"
+profile = "public-issue"
+format = "jsonl"
+min_redactions = 4
+expected_detectors = [
+  "escaped-windows-user-path",
+  "unix-home-path",
+  "secret-key-value",
+  "contact-email",
+]
+expected_classes = [
+  "identity.local_user",
+  "secret.password",
+  "identity.contact",
+]
+must_redact = [
+  "C:\\Users\\Matt\\project\\target",
+  "/home/matt/.cache/build",
+  "fixture_ci_token_abcdefghijklmnopqrstuvwxyz",
+  "ci-owner@example.com",
+]
+must_keep = [
+  "\"level\":\"error\"",
+  "\"job\":\"test\"",
+]
+input = '''
+{"level":"error","path":"C:\\Users\\Matt\\project\\target","job":"test"}
+{"level":"info","cache":"/home/matt/.cache/build","token":"fixture_ci_token_abcdefghijklmnopqrstuvwxyz","owner":"ci-owner@example.com"}
+'''
+
+[[cases]]
+id = "toml-service-config"
+profile = "public-issue"
+format = "toml"
+min_redactions = 5
+expected_detectors = [
+  "database-url-kv",
+  "internal-url",
+  "private-ipv4",
+  "secret-key-value",
+  "contact-email",
+]
+expected_classes = [
+  "secret.connection_string",
+  "network.endpoint",
+  "identity.host",
+  "secret.password",
+  "identity.contact",
+]
+must_redact = [
+  "postgres://app:fixturepassword@db.internal/app",
+  "http://api.internal/health",
+  "192.168.10.20",
+  "fixture_cookie_secret_abcdefghijklmnopqrstuvwxyz",
+  "owner@example.com",
+]
+must_keep = [
+  "[service]",
+  "name = \"payments\"",
+]
+input = '''
+[service]
+name = "payments"
+database_url = "postgres://app:fixturepassword@db.internal/app"
+healthcheck = "http://api.internal/health"
+private_ip = "192.168.10.20"
+cookie_secret = "fixture_cookie_secret_abcdefghijklmnopqrstuvwxyz"
+owner = "owner@example.com"
+'''
+
+[[cases]]
+id = "curl-transcript"
+profile = "public-issue"
+format = "curl"
+min_redactions = 4
+expected_detectors = [
+  "authorization-bearer",
+  "internal-url",
+  "secret-key-value",
+  "contact-email",
+]
+expected_classes = [
+  "secret.auth_token",
+  "network.endpoint",
+  "secret.password",
+  "identity.contact",
+]
+must_redact = [
+  "fixturebearertoken123456",
+  "https://api.internal/v1/users",
+  "fixture_api_key_abcdefghijklmnopqrstuvwxyz",
+  "requester@example.com",
+]
+must_keep = [
+  "curl -X POST",
+  "-H",
+]
+input = '''
+curl -X POST "https://api.internal/v1/users" \
+  -H "Authorization: Bearer fixturebearertoken123456" \
+  -H "X-Api-Key: fixture_api_key_abcdefghijklmnopqrstuvwxyz" \
+  -H "From: requester@example.com"
+'''
+
+[[cases]]
+id = "har-capture"
+profile = "public-issue"
+format = "har"
+min_redactions = 5
+expected_detectors = [
+  "internal-url",
+  "authorization-bearer",
+  "secret-header-value",
+  "private-ipv4",
+  "contact-email",
+]
+expected_classes = [
+  "network.endpoint",
+  "secret.auth_token",
+  "secret.api_key",
+  "identity.host",
+  "identity.contact",
+]
+must_redact = [
+  "https://gateway.internal/api",
+  "fixtureharbearer123456",
+  "fixture_har_key_abcdefghijklmnopqrstuvwxyz",
+  "10.0.1.15",
+  "har-user@example.com",
+]
+must_keep = [
+  "\"log\"",
+  "\"entries\"",
+]
+input = '''
+{
+  "log": {
+    "entries": [
+      {
+        "request": {
+          "url": "https://gateway.internal/api",
+          "headers": [
+            {"name": "Authorization", "value": "Bearer fixtureharbearer123456"},
+            {"name": "X-Api-Key", "value": "fixture_har_key_abcdefghijklmnopqrstuvwxyz"},
+            {"name": "X-Forwarded-For", "value": "10.0.1.15"},
+            {"name": "From", "value": "har-user@example.com"}
+          ]
+        }
+      }
+    ]
+  }
+}
+'''
+
+[[cases]]
+id = "patch-file"
+profile = "public-issue"
+format = "diff"
+min_redactions = 4
+expected_detectors = [
+  "database-url-kv",
+  "secret-key-value",
+  "private-ipv4",
+  "contact-email",
+]
+expected_classes = [
+  "secret.connection_string",
+  "secret.password",
+  "identity.host",
+  "identity.contact",
+]
+must_redact = [
+  "postgres://app:fixturepassword@db.internal/app",
+  "fixture_patch_secret_abcdefghijklmnopqrstuvwxyz",
+  "172.16.8.9",
+  "patch-owner@example.com",
+]
+must_keep = [
+  "diff --git",
+  "+DATABASE_URL=",
+]
+input = '''
+diff --git a/.env b/.env
++DATABASE_URL=postgres://app:fixturepassword@db.internal/app
++WEBHOOK_SECRET=fixture_patch_secret_abcdefghijklmnopqrstuvwxyz
++PRIVATE_IP=172.16.8.9
++OWNER=patch-owner@example.com
+'''
+
 [[false_positive_cases]]
 id = "benign-config-flags"
 profile = "public-issue"

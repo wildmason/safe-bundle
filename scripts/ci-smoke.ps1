@@ -14,6 +14,9 @@ $stdinOut = Join-Path $smokeDir 'stdin-redacted.txt'
 $scrubOut = Join-Path $smokeDir 'redacted-files'
 $scrubEvents = Join-Path $smokeDir 'scrub-redactions.jsonl'
 $dryRunEvents = Join-Path $smokeDir 'dry-run-redactions.jsonl'
+$policyDir = Join-Path $smokeDir 'policy-input'
+$policyConfig = Join-Path $smokeDir '.safe-bundle.toml'
+$policyOut = Join-Path $smokeDir 'policy-redacted'
 
 if (Test-Path -LiteralPath $smokeDir) {
     Remove-Item -LiteralPath $smokeDir -Recurse -Force
@@ -53,6 +56,50 @@ if ($stdinRedacted -notmatch '\[REDACTED:SECRET\.CLOUD_CREDENTIAL:1\]') {
 }
 Write-Host '::endgroup::'
 
+Write-Host '::group::repository policy config'
+New-Item -ItemType Directory -Path (Join-Path $policyDir 'public') | Out-Null
+New-Item -ItemType Directory -Path $policyOut | Out-Null
+@'
+version = 1
+
+[allowlist]
+literals = ["ticket_keep_this_value"]
+
+[[custom_detectors]]
+id = "ticket-token"
+pattern = "ticket_[A-Za-z0-9_]{12,}"
+class = "secret.api_key"
+confidence = "high"
+reason = "ticket fixture token"
+
+[[path_overrides]]
+pattern = "policy-input/public/**"
+profile = "internal"
+'@ | Set-Content -NoNewline -LiteralPath $policyConfig
+@'
+CUSTOM_TOKEN=ticket_redact_this_value
+ALLOW_TOKEN=ticket_keep_this_value
+CONTACT=policy-contact@example.com
+'@ | Set-Content -NoNewline -LiteralPath (Join-Path $policyDir 'public/example.env')
+
+$policyRules = cargo run --quiet -- rules list --config $policyConfig --format text
+$policyRulesText = $policyRules -join "`n"
+if ($policyRulesText -notmatch 'ticket-token') {
+    throw 'rules list --config did not include the custom detector'
+}
+cargo run --quiet -- scrub $policyDir --profile public-issue --config $policyConfig --exclude '**/.git/**' --out $policyOut --summary text | Out-Null
+$policyRedacted = Get-Content -Raw -LiteralPath (Join-Path $policyOut 'policy-input/public/example.env')
+if ($policyRedacted -match 'ticket_redact_this_value') {
+    throw 'custom detector failed to redact the ticket token'
+}
+if ($policyRedacted -notmatch 'ticket_keep_this_value') {
+    throw 'allowlist literal was redacted unexpectedly'
+}
+if ($policyRedacted -notmatch 'policy-contact@example.com') {
+    throw 'path profile override did not preserve contact email under internal profile'
+}
+Write-Host '::endgroup::'
+
 Write-Host '::group::bundle and inspect'
 cargo run --quiet -- bundle fixtures/synthetic --profile public-issue --out $bundlePath --receipt $receiptPath
 $inspect = cargo run --quiet -- inspect $bundlePath --summary text
@@ -61,6 +108,11 @@ $inspectText = $inspect -join "`n"
 if ($inspectText -notmatch 'Files: 3' -or $inspectText -notmatch 'Redactions: 10') {
     throw 'inspect output did not report the expected fixture counts'
 }
+$verifyInspect = cargo run --quiet -- inspect $bundlePath --verify --summary text
+$verifyInspectText = $verifyInspect -join "`n"
+if ($verifyInspectText -notmatch 'Verified files: 3' -or $verifyInspectText -notmatch 'Verified redactions: 10') {
+    throw 'inspect --verify did not report the expected verified counts'
+}
 Write-Host '::endgroup::'
 
 Write-Host '::group::structured bundle'
@@ -68,7 +120,7 @@ cargo run --quiet -- bundle fixtures/structured --profile public-issue --out $st
 $structuredInspect = cargo run --quiet -- inspect $structuredBundlePath --summary text
 $structuredInspect | Write-Host
 $structuredInspectText = $structuredInspect -join "`n"
-if ($structuredInspectText -notmatch 'Files: 4' -or $structuredInspectText -notmatch 'Redactions: 12') {
+if ($structuredInspectText -notmatch 'Files: 4' -or $structuredInspectText -notmatch 'Redactions: 13') {
     throw 'structured fixture inspect output did not report the expected counts'
 }
 Write-Host '::endgroup::'

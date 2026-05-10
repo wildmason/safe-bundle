@@ -64,6 +64,33 @@ During development:
 cargo run -- --help
 ```
 
+## Repository Policy
+
+`safe-bundle` can load `.safe-bundle.toml` from the current directory or an
+ancestor. Use it for repository-local allowlists, custom detectors, and per-path
+profile overrides. Pass `--config <path>` for an explicit file or `--no-config`
+to force built-in behavior.
+
+```toml
+version = 1
+
+[allowlist]
+literals = ["ticket_keep_this_value"]
+
+[[custom_detectors]]
+id = "ticket-token"
+pattern = "ticket_[A-Za-z0-9_]{12,}"
+class = "secret.api_key"
+confidence = "high"
+reason = "ticket fixture token"
+
+[[path_overrides]]
+pattern = "public/**"
+profile = "internal"
+```
+
+See [configuration](docs/CONFIG.md) for the full schema.
+
 ## Scrub Files
 
 ```sh
@@ -137,6 +164,7 @@ The public bundle does not include original files or raw sensitive values.
 ```sh
 cargo run -- inspect target/support.safe-bundle.zip
 cargo run -- inspect target/support.safe-bundle.zip --summary json
+cargo run -- inspect target/support.safe-bundle.zip --verify
 ```
 
 ## Profiles
@@ -174,6 +202,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci-smoke.ps1
 Additional project docs:
 
 - [Threat model](docs/THREAT_MODEL.md)
+- [Configuration](docs/CONFIG.md)
+- [Bundle format](docs/BUNDLE_FORMAT.md)
 - [Roadmap to 1.0](docs/ROADMAP.md)
 - [Release process](docs/RELEASE.md)
 - [Contributing](CONTRIBUTING.md)

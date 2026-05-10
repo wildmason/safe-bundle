@@ -1,5 +1,6 @@
 pub mod archive;
 pub mod cli;
+pub mod config;
 pub mod detectors;
 pub mod engine;
 pub mod formats;

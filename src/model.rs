@@ -297,9 +297,9 @@ pub struct SkippedFile {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct DetectorInfo {
-    pub id: &'static str,
-    pub version: &'static str,
+    pub id: String,
+    pub version: String,
     pub class: RedactionClass,
     pub confidence: Confidence,
-    pub reason: &'static str,
+    pub reason: String,
 }

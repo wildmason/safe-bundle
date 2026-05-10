@@ -1,4 +1,5 @@
-use crate::archive::{BundleOptions, build_bundle, inspect_bundle};
+use crate::archive::{BundleOptions, build_bundle, inspect_bundle, verify_bundle};
+use crate::config::RuntimeConfig;
 use crate::detectors::detector_infos;
 use crate::engine::{Policy, Redactor};
 use crate::formats::validate_structure_preserved;
@@ -46,6 +47,10 @@ struct SharedRedactionArgs {
     placeholder_style: PlaceholderStyle,
     #[arg(long = "fail-on", value_enum)]
     fail_on: Vec<FailOn>,
+    #[arg(long)]
+    config: Option<PathBuf>,
+    #[arg(long)]
+    no_config: bool,
 }
 
 impl SharedRedactionArgs {
@@ -66,6 +71,14 @@ impl SharedRedactionArgs {
 
     fn policy(&self) -> Policy {
         Policy::new(self.profile, self.placeholder_style)
+    }
+
+    fn runtime_config(&self) -> Result<RuntimeConfig> {
+        RuntimeConfig::load(self.config.as_deref(), self.no_config)
+    }
+
+    fn redactor(&self, runtime_config: &RuntimeConfig) -> Redactor {
+        Redactor::with_detectors(self.policy(), runtime_config.detector_set.clone())
     }
 }
 
@@ -108,6 +121,8 @@ struct InspectArgs {
     bundle: PathBuf,
     #[arg(long, value_enum, default_value_t = SummaryFormat::Text)]
     summary: SummaryFormat,
+    #[arg(long)]
+    verify: bool,
 }
 
 #[derive(Debug, Args)]
@@ -121,12 +136,20 @@ enum RulesCommand {
     List {
         #[arg(long, value_enum, default_value_t = SummaryFormat::Text)]
         format: SummaryFormat,
+        #[arg(long)]
+        config: Option<PathBuf>,
+        #[arg(long)]
+        no_config: bool,
     },
     Test {
         #[arg(required = true)]
         path: PathBuf,
         #[arg(long, value_enum, default_value_t = Profile::Support)]
         profile: Profile,
+        #[arg(long)]
+        config: Option<PathBuf>,
+        #[arg(long)]
+        no_config: bool,
     },
 }
 
@@ -141,7 +164,8 @@ pub fn run() -> Result<()> {
 }
 
 fn scrub(args: ScrubArgs) -> Result<()> {
-    let mut redactor = Redactor::new(args.shared.policy());
+    let runtime_config = args.shared.runtime_config()?;
+    let mut redactor = args.shared.redactor(&runtime_config);
     let mut summary = RedactionSummary::default();
     let mut documents = Vec::new();
     let mut skipped = Vec::new();
@@ -160,7 +184,13 @@ fn scrub(args: ScrubArgs) -> Result<()> {
         let (inputs, skipped_files) = collect_inputs(&args.paths, &args.shared.input_options())?;
         skipped.extend(skipped_files);
         for input in inputs {
-            let document = redactor.redact_text(&input.content, &input.archive_path, &input.format);
+            let profile = runtime_config.profile_for_path(&input.archive_path, args.shared.profile);
+            let document = redactor.redact_text_with_profile(
+                &input.content,
+                &input.archive_path,
+                &input.format,
+                profile,
+            );
             validate_structure_preserved(&input.format, &input.content, &document.redacted)
                 .with_context(|| {
                     format!("structured validation failed for {}", input.source_file)
@@ -225,12 +255,19 @@ fn scrub(args: ScrubArgs) -> Result<()> {
 }
 
 fn bundle(args: BundleArgs) -> Result<()> {
+    let runtime_config = args.shared.runtime_config()?;
     if args.dry_run {
         let (inputs, skipped) = collect_inputs(&args.paths, &args.shared.input_options())?;
-        let mut redactor = Redactor::new(args.shared.policy());
+        let mut redactor = args.shared.redactor(&runtime_config);
         let mut summary = RedactionSummary::default();
         for input in inputs {
-            let document = redactor.redact_text(&input.content, &input.archive_path, &input.format);
+            let profile = runtime_config.profile_for_path(&input.archive_path, args.shared.profile);
+            let document = redactor.redact_text_with_profile(
+                &input.content,
+                &input.archive_path,
+                &input.format,
+                profile,
+            );
             validate_structure_preserved(&input.format, &input.content, &document.redacted)
                 .with_context(|| {
                     format!("structured validation failed for {}", input.source_file)
@@ -250,6 +287,7 @@ fn bundle(args: BundleArgs) -> Result<()> {
             profile: args.shared.profile,
             placeholder_style: args.shared.placeholder_style,
             input_options: args.shared.input_options(),
+            runtime_config,
         },
     )?;
 
@@ -271,9 +309,23 @@ fn bundle(args: BundleArgs) -> Result<()> {
 }
 
 fn inspect(args: InspectArgs) -> Result<()> {
-    let manifest = inspect_bundle(&args.bundle)?;
+    let verification = if args.verify {
+        Some(verify_bundle(&args.bundle)?)
+    } else {
+        None
+    };
+    let manifest = match &verification {
+        Some(verification) => verification.manifest.clone(),
+        None => inspect_bundle(&args.bundle)?,
+    };
     match args.summary {
-        SummaryFormat::Json => println!("{}", serde_json::to_string_pretty(&manifest)?),
+        SummaryFormat::Json => {
+            if let Some(verification) = verification {
+                println!("{}", serde_json::to_string_pretty(&verification)?);
+            } else {
+                println!("{}", serde_json::to_string_pretty(&manifest)?);
+            }
+        }
         SummaryFormat::Markdown => {
             println!("# Safe Bundle\n");
             println!("- Tool: `{}` {}", manifest.tool_name, manifest.tool_version);
@@ -282,6 +334,13 @@ fn inspect(args: InspectArgs) -> Result<()> {
             println!("- Files: `{}`", manifest.file_count);
             println!("- Redactions: `{}`", manifest.redaction_count);
             println!("- Bundle hash: `{}`", manifest.bundle_hash);
+            if let Some(verification) = verification {
+                println!("- Verified files: `{}`", verification.verified_file_count);
+                println!(
+                    "- Verified redactions: `{}`",
+                    verification.verified_redaction_count
+                );
+            }
         }
         SummaryFormat::Text => {
             println!("Safe bundle: {}", args.bundle.display());
@@ -290,6 +349,13 @@ fn inspect(args: InspectArgs) -> Result<()> {
             println!("Files: {}", manifest.file_count);
             println!("Redactions: {}", manifest.redaction_count);
             println!("Bundle hash: {}", manifest.bundle_hash);
+            if let Some(verification) = verification {
+                println!("Verified files: {}", verification.verified_file_count);
+                println!(
+                    "Verified redactions: {}",
+                    verification.verified_redaction_count
+                );
+            }
         }
     }
     Ok(())
@@ -297,8 +363,17 @@ fn inspect(args: InspectArgs) -> Result<()> {
 
 fn rules(args: RulesArgs) -> Result<()> {
     match args.command {
-        RulesCommand::List { format } => {
-            let infos = detector_infos();
+        RulesCommand::List {
+            format,
+            config,
+            no_config,
+        } => {
+            let runtime_config = RuntimeConfig::load(config.as_deref(), no_config)?;
+            let infos = if runtime_config.loaded_from.is_some() {
+                runtime_config.detector_set.detector_infos()
+            } else {
+                detector_infos()
+            };
             match format {
                 SummaryFormat::Json => println!("{}", serde_json::to_string_pretty(&infos)?),
                 SummaryFormat::Markdown => {
@@ -327,7 +402,12 @@ fn rules(args: RulesArgs) -> Result<()> {
                 }
             }
         }
-        RulesCommand::Test { path, profile } => {
+        RulesCommand::Test {
+            path,
+            profile,
+            config,
+            no_config,
+        } => {
             let shared = SharedRedactionArgs {
                 profile,
                 format: InputFormat::Auto,
@@ -336,13 +416,21 @@ fn rules(args: RulesArgs) -> Result<()> {
                 max_file_size: crate::input::parse_size("10MiB")?,
                 placeholder_style: PlaceholderStyle::Bracket,
                 fail_on: Vec::new(),
+                config,
+                no_config,
             };
+            let runtime_config = shared.runtime_config()?;
             let (inputs, skipped) = collect_inputs(&[path], &shared.input_options())?;
-            let mut redactor = Redactor::new(shared.policy());
+            let mut redactor = shared.redactor(&runtime_config);
             let mut summary = RedactionSummary::default();
             for input in inputs {
-                let document =
-                    redactor.redact_text(&input.content, &input.archive_path, &input.format);
+                let profile = runtime_config.profile_for_path(&input.archive_path, shared.profile);
+                let document = redactor.redact_text_with_profile(
+                    &input.content,
+                    &input.archive_path,
+                    &input.format,
+                    profile,
+                );
                 validate_structure_preserved(&input.format, &input.content, &document.redacted)
                     .with_context(|| {
                         format!("structured validation failed for {}", input.source_file)
