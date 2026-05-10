@@ -34,8 +34,9 @@ Supported MVP detectors include:
 - Secret-like key/value pairs.
 - Common cloud credentials: AWS, GitHub, Stripe, Stripe webhooks, npm, OpenAI,
   Anthropic, Slack, Discord, Fly.io, Resend, Lemon Squeezy, Google API keys,
-  Azure storage account keys, SendGrid, Datadog, Netlify, Vercel, Postmark,
-  Sentry, Supabase service-role keys, and Twilio auth tokens.
+  Azure storage account keys, GitLab, DigitalOcean, Hugging Face, Linear,
+  Notion, Cloudflare, Atlassian/Jira, Shopify, SendGrid, Datadog, Netlify,
+  Vercel, Postmark, Sentry, Supabase service-role keys, and Twilio auth tokens.
 - Database and service connection strings.
 - URL password segments.
 - Windows and Unix home directory usernames.

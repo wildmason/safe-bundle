@@ -261,6 +261,81 @@ static DETECTORS: LazyLock<Vec<Detector>> = LazyLock::new(|| {
             0,
         ),
         Detector::new(
+            "gitlab-token",
+            RedactionClass::SecretCloudCredential,
+            Confidence::High,
+            "GitLab access token",
+            r"\bglpat-[A-Za-z0-9_-]{20,}\b",
+            0,
+        )
+        .with_specificity(20),
+        Detector::new(
+            "digitalocean-token",
+            RedactionClass::SecretCloudCredential,
+            Confidence::High,
+            "DigitalOcean API token",
+            r"\bdop_v1_[a-f0-9]{64}\b",
+            0,
+        )
+        .with_specificity(20),
+        Detector::new(
+            "huggingface-token",
+            RedactionClass::SecretCloudCredential,
+            Confidence::High,
+            "Hugging Face access token",
+            r"\bhf_[A-Za-z0-9]{30,}\b",
+            0,
+        )
+        .with_specificity(20),
+        Detector::new(
+            "linear-api-key",
+            RedactionClass::SecretCloudCredential,
+            Confidence::High,
+            "Linear API key",
+            r"\blin_api_[A-Za-z0-9]{20,}\b",
+            0,
+        )
+        .with_specificity(20),
+        Detector::new(
+            "notion-secret-value",
+            RedactionClass::SecretCloudCredential,
+            Confidence::High,
+            "Notion integration secret assignment",
+            r#"(?i)\b(notion_(?:api_)?(?:key|token)|notion_secret)\b\s*[:=]\s*['"]?(secret_[A-Za-z0-9]{20,})"#,
+            2,
+        )
+        .with_context_key_group(1)
+        .with_specificity(20),
+        Detector::new(
+            "cloudflare-api-token-value",
+            RedactionClass::SecretCloudCredential,
+            Confidence::High,
+            "Cloudflare API token assignment",
+            r#"(?i)\b(cloudflare_api_token|cloudflare_token|cf_api_token)\b\s*[:=]\s*['"]?([A-Za-z0-9_-]{20,})"#,
+            2,
+        )
+        .with_context_key_group(1)
+        .with_specificity(20),
+        Detector::new(
+            "atlassian-api-token-value",
+            RedactionClass::SecretCloudCredential,
+            Confidence::High,
+            "Atlassian or Jira API token assignment",
+            r#"(?i)\b(atlassian_api_token|jira_api_token|confluence_api_token)\b\s*[:=]\s*['"]?([A-Za-z0-9_-]{20,})"#,
+            2,
+        )
+        .with_context_key_group(1)
+        .with_specificity(20),
+        Detector::new(
+            "shopify-access-token",
+            RedactionClass::SecretCloudCredential,
+            Confidence::High,
+            "Shopify access token",
+            r"\bshp(?:at|ss|ca)_[A-Fa-f0-9]{32}\b",
+            0,
+        )
+        .with_specificity(20),
+        Detector::new(
             "stripe-secret-key",
             RedactionClass::SecretCloudCredential,
             Confidence::High,
@@ -683,6 +758,24 @@ mod tests {
             "AZURE_STORAGE=DefaultEndpointsProtocol=https;AccountName=acct;AccountKey=abcdefghijklmnopqrstuvwxyz1234567890+/=;EndpointSuffix=core.windows.net".to_string(),
             "AWS_SECRET_ACCESS_KEY=abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMN".to_string(),
             "AWS_SESSION_TOKEN=IQoJb3JpZ2luX2VjEGgaCXVzLWVhc3QtMSJGMEQCIDfixture".to_string(),
+            format!("GITLAB_TOKEN={}", ["glpat-", "abcdefghijklmnopqrstuvwxyz123456"].concat()),
+            format!(
+                "DIGITALOCEAN_TOKEN={}",
+                [
+                    "dop_v1_",
+                    "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+                ]
+                .concat()
+            ),
+            format!("HF_TOKEN={}", ["hf_", "abcdefghijklmnopqrstuvwxyz1234567890"].concat()),
+            format!("LINEAR_API_KEY={}", ["lin_api_", "abcdefghijklmnopqrstuvwxyz"].concat()),
+            format!("NOTION_API_TOKEN={}", ["secret_", "abcdefghijklmnopqrstuvwxyz123456"].concat()),
+            "CLOUDFLARE_API_TOKEN=abcdefghijklmnopqrstuvwxyz123456".to_string(),
+            "JIRA_API_TOKEN=abcdefghijklmnopqrstuvwxyz123456".to_string(),
+            format!(
+                "SHOPIFY_ACCESS_TOKEN={}",
+                ["sh", "pat_", "0123456789abcdef0123456789abcdef"].concat()
+            ),
             "STRIPE_WEBHOOK_SECRET=whsec_abcdefghijklmnopqrstuvwxyz".to_string(),
             "SENDGRID_API_KEY=SG.abcdefghijklmnopqrstuv.abcdefghijklmnopqrstuvwxyz".to_string(),
             "DATADOG_API_KEY=0123456789abcdef0123456789abcdef".to_string(),
@@ -714,6 +807,14 @@ mod tests {
             "azure-storage-account-key",
             "aws-secret-access-key-value",
             "aws-session-token-value",
+            "gitlab-token",
+            "digitalocean-token",
+            "huggingface-token",
+            "linear-api-key",
+            "notion-secret-value",
+            "cloudflare-api-token-value",
+            "atlassian-api-token-value",
+            "shopify-access-token",
             "stripe-webhook-secret",
             "sendgrid-api-key",
             "datadog-api-key-value",

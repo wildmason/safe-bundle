@@ -277,7 +277,7 @@ cargo run --quiet -- bundle fixtures/providers --profile public-issue --out $pro
 $providersInspect = cargo run --quiet -- inspect $providersBundlePath --summary text
 $providersInspect | Write-Host
 $providersInspectText = $providersInspect -join "`n"
-if ($providersInspectText -notmatch 'Files: 1' -or $providersInspectText -notmatch 'Redactions: 21') {
+if ($providersInspectText -notmatch 'Files: 1' -or $providersInspectText -notmatch 'Redactions: 27') {
     throw 'provider fixture inspect output did not report the expected counts'
 }
 Write-Host '::endgroup::'
