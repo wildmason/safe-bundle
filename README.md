@@ -41,8 +41,20 @@ Supported MVP detectors include:
 
 ## Install From Source
 
+Download release assets from the
+[GitHub Releases](https://github.com/wildmason/safe-bundle/releases) page and
+verify the matching `.sha256` file before using a binary.
+
+From a local checkout:
+
 ```sh
 cargo install --path .
+```
+
+From GitHub:
+
+```sh
+cargo install --git https://github.com/wildmason/safe-bundle.git --locked
 ```
 
 During development:
@@ -157,6 +169,14 @@ On Windows without PowerShell Core installed, the smoke script also works with:
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci-smoke.ps1
 ```
+
+Additional project docs:
+
+- [Threat model](docs/THREAT_MODEL.md)
+- [Release process](docs/RELEASE.md)
+- [Contributing](CONTRIBUTING.md)
+- [Security policy](SECURITY.md)
+- [Changelog](CHANGELOG.md)
 
 ## License
 

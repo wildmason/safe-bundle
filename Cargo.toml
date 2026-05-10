@@ -2,10 +2,27 @@
 name = "safe-bundle"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.85"
 license = "MIT OR Apache-2.0"
 description = "Local-first redaction and safe support bundle CLI"
 repository = "https://github.com/wildmason/safe-bundle"
 readme = "README.md"
+keywords = ["redaction", "support", "cli", "privacy", "security"]
+categories = ["command-line-utilities", "development-tools"]
+include = [
+    "/Cargo.lock",
+    "/Cargo.toml",
+    "/CHANGELOG.md",
+    "/CONTRIBUTING.md",
+    "/LICENSE-APACHE",
+    "/LICENSE-MIT",
+    "/README.md",
+    "/SECURITY.md",
+    "/docs/**",
+    "/fixtures/**",
+    "/scripts/ci-smoke.ps1",
+    "/src/**",
+]
 
 [dependencies]
 anyhow = "1.0"
