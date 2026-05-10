@@ -1,7 +1,8 @@
 param(
     [string]$Tag,
     [string]$Repository = 'wildmason/safe-bundle',
-    [string]$OutDir
+    [string]$OutDir,
+    [string]$SidecarDir
 )
 
 Set-StrictMode -Version Latest
@@ -19,7 +20,15 @@ function Invoke-Checked {
     }
 }
 
+function Assert-GitHubCli {
+    if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
+        throw 'GitHub CLI (`gh`) is required unless -SidecarDir is provided.'
+    }
+}
+
 function Get-DefaultTag {
+    Assert-GitHubCli
+
     $tag = gh release view --repo $Repository --json tagName --jq '.tagName'
     if ($LASTEXITCODE -ne 0) {
         throw "could not determine latest release tag for $Repository"
@@ -52,10 +61,6 @@ function Read-SidecarHash {
     return $Matches[1].ToLowerInvariant()
 }
 
-if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
-    throw 'GitHub CLI (`gh`) is required to read release asset metadata.'
-}
-
 if (-not $Tag) {
     $Tag = Get-DefaultTag
 }
@@ -66,23 +71,30 @@ if (-not $OutDir) {
     $OutDir = Join-Path $repoRoot "target/packaging/$Tag"
 }
 
-$sidecarDir = Join-Path $OutDir 'sidecars'
+$downloadSidecarDir = Join-Path $OutDir 'sidecars'
 $homebrewDir = Join-Path $OutDir 'homebrew'
 $scoopDir = Join-Path $OutDir 'scoop'
-New-Item -ItemType Directory -Force -Path $sidecarDir, $homebrewDir, $scoopDir | Out-Null
+New-Item -ItemType Directory -Force -Path $downloadSidecarDir, $homebrewDir, $scoopDir | Out-Null
 
-Invoke-Checked gh @(
-    'release',
-    'download',
-    $Tag,
-    '--repo',
-    $Repository,
-    '--dir',
-    $sidecarDir,
-    '--clobber',
-    '--pattern',
-    '*.sha256'
-)
+if ($SidecarDir) {
+    $readSidecarDir = (Resolve-Path -LiteralPath $SidecarDir).ProviderPath
+}
+else {
+    Assert-GitHubCli
+    Invoke-Checked gh @(
+        'release',
+        'download',
+        $Tag,
+        '--repo',
+        $Repository,
+        '--dir',
+        $downloadSidecarDir,
+        '--clobber',
+        '--pattern',
+        '*.sha256'
+    )
+    $readSidecarDir = $downloadSidecarDir
+}
 
 $assetBase = "https://github.com/$Repository/releases/download/$Tag"
 $linuxAsset = "safe-bundle-$Tag-x86_64-unknown-linux-gnu.tar.gz"
@@ -90,10 +102,10 @@ $macIntelAsset = "safe-bundle-$Tag-x86_64-apple-darwin.tar.gz"
 $macArmAsset = "safe-bundle-$Tag-aarch64-apple-darwin.tar.gz"
 $windowsAsset = "safe-bundle-$Tag-x86_64-pc-windows-msvc.zip"
 
-$linuxHash = Read-SidecarHash $sidecarDir $linuxAsset
-$macIntelHash = Read-SidecarHash $sidecarDir $macIntelAsset
-$macArmHash = Read-SidecarHash $sidecarDir $macArmAsset
-$windowsHash = Read-SidecarHash $sidecarDir $windowsAsset
+$linuxHash = Read-SidecarHash $readSidecarDir $linuxAsset
+$macIntelHash = Read-SidecarHash $readSidecarDir $macIntelAsset
+$macArmHash = Read-SidecarHash $readSidecarDir $macArmAsset
+$windowsHash = Read-SidecarHash $readSidecarDir $windowsAsset
 
 $homebrewFormula = @"
 class SafeBundle < Formula

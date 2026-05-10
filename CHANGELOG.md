@@ -24,6 +24,10 @@ should be called out explicitly.
   policy before running a scrub.
 - Package-manager recipe generation script and docs for Homebrew taps and Scoop
   buckets backed by GitHub Release assets.
+- Offline sidecar mode and smoke coverage for package-manager recipe
+  generation.
+- Install guide covering release archives, source installs, completions,
+  repository policy setup, and package-manager status.
 
 ## 1.0.0 - 2026-05-10
 

@@ -84,3 +84,16 @@ cargo publish --locked
 
 Publish from the release tag so the crate contents match the GitHub Release
 crate archive. Do not publish if the GitHub Release workflow failed.
+
+## Package Managers
+
+After the GitHub Release has been verified, generate package-manager recipe
+drafts from the release sidecars:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\generate-packaging-recipes.ps1 -Tag v1.0.0
+```
+
+Review the generated Homebrew formula and Scoop manifest before copying them
+into the downstream tap or bucket repositories. See
+[package manager recipes](PACKAGING.md) for the full workflow.

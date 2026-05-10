@@ -4,7 +4,8 @@
 supported, but remains a credential-gated maintainer step.
 
 Package-manager recipe generation is documented in
-[package manager recipes](PACKAGING.md).
+[package manager recipes](PACKAGING.md). End-user installation options are
+covered in the [install guide](INSTALL.md).
 
 ## GitHub Releases
 

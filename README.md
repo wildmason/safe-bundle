@@ -42,7 +42,7 @@ Supported MVP detectors include:
 - Private IPv4 addresses.
 - Email addresses and internal URLs in more aggressive profiles.
 
-## Install From Source
+## Install
 
 Download release assets from the
 [GitHub Releases](https://github.com/wildmason/safe-bundle/releases) page and
@@ -53,6 +53,9 @@ From a checkout, install the matching GitHub Release binary for your platform:
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Tag v1.0.0
 ```
+
+See the [install guide](docs/INSTALL.md) for manual archive verification,
+source installs, shell completions, and package-manager status.
 
 From a local checkout:
 
@@ -251,6 +254,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci-smoke.ps1
 
 Additional project docs:
 
+- [Install guide](docs/INSTALL.md)
 - [Threat model](docs/THREAT_MODEL.md)
 - [Configuration](docs/CONFIG.md)
 - [Bundle format](docs/BUNDLE_FORMAT.md)

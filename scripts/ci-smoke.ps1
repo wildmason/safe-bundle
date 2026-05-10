@@ -19,6 +19,8 @@ $cleanDir = Join-Path $smokeDir 'clean-input'
 $initConfigDir = Join-Path $smokeDir 'init-config'
 $initConfigPath = Join-Path $initConfigDir '.safe-bundle.toml'
 $badConfigPath = Join-Path $initConfigDir 'bad.safe-bundle.toml'
+$packagingSidecarDir = Join-Path $smokeDir 'packaging-sidecars'
+$packagingOutDir = Join-Path $smokeDir 'packaging-out'
 $policyDir = Join-Path $smokeDir 'policy-input'
 $policyConfig = Join-Path $smokeDir '.safe-bundle.toml'
 $policyOut = Join-Path $smokeDir 'policy-redacted'
@@ -41,6 +43,50 @@ Write-Host '::group::release helper script syntax'
 foreach ($scriptName in @('generate-packaging-recipes.ps1', 'install.ps1', 'verify-release.ps1')) {
     $scriptPath = Join-Path $repoRoot "scripts/$scriptName"
     $null = [scriptblock]::Create((Get-Content -Raw -LiteralPath $scriptPath))
+}
+Write-Host '::endgroup::'
+
+Write-Host '::group::packaging recipe generation'
+$packagingTag = 'v9.8.7-test'
+$linuxAsset = "safe-bundle-$packagingTag-x86_64-unknown-linux-gnu.tar.gz"
+$macIntelAsset = "safe-bundle-$packagingTag-x86_64-apple-darwin.tar.gz"
+$macArmAsset = "safe-bundle-$packagingTag-aarch64-apple-darwin.tar.gz"
+$windowsAsset = "safe-bundle-$packagingTag-x86_64-pc-windows-msvc.zip"
+$packagingHashes = [ordered]@{
+    $linuxAsset    = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+    $macIntelAsset = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+    $macArmAsset   = 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc'
+    $windowsAsset  = 'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd'
+}
+New-Item -ItemType Directory -Path $packagingSidecarDir | Out-Null
+foreach ($assetName in $packagingHashes.Keys) {
+    "$($packagingHashes[$assetName])  *$assetName" |
+        Set-Content -NoNewline -LiteralPath (Join-Path $packagingSidecarDir "$assetName.sha256")
+}
+& (Join-Path $repoRoot 'scripts/generate-packaging-recipes.ps1') `
+    -Tag $packagingTag `
+    -OutDir $packagingOutDir `
+    -SidecarDir $packagingSidecarDir | Out-Null
+$homebrewFormulaPath = Join-Path $packagingOutDir 'homebrew/safe-bundle.rb'
+$scoopManifestPath = Join-Path $packagingOutDir 'scoop/safe-bundle.json'
+$homebrewFormula = Get-Content -Raw -LiteralPath $homebrewFormulaPath
+$linuxUrl = "https://github.com/wildmason/safe-bundle/releases/download/$packagingTag/$linuxAsset"
+if (
+    $homebrewFormula -notmatch 'version "9\.8\.7-test"' -or
+    $homebrewFormula -notmatch [regex]::Escape($linuxUrl) -or
+    $homebrewFormula -notmatch $packagingHashes[$linuxAsset] -or
+    $homebrewFormula -notmatch $packagingHashes[$macIntelAsset] -or
+    $homebrewFormula -notmatch $packagingHashes[$macArmAsset]
+) {
+    throw 'generated Homebrew formula did not include expected version, URLs, or hashes'
+}
+$scoopManifest = Get-Content -Raw -LiteralPath $scoopManifestPath | ConvertFrom-Json
+if (
+    $scoopManifest.version -ne '9.8.7-test' -or
+    $scoopManifest.architecture.'64bit'.hash -ne $packagingHashes[$windowsAsset] -or
+    $scoopManifest.architecture.'64bit'.url -notmatch [regex]::Escape($windowsAsset)
+) {
+    throw 'generated Scoop manifest did not include expected version, URL, or hash'
 }
 Write-Host '::endgroup::'
 

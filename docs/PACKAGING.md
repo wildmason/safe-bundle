@@ -24,6 +24,16 @@ scoop/safe-bundle.json
 These files are generated release artifacts. Publish them to the relevant tap or
 bucket repository after reviewing the rendered URLs and hashes.
 
+For offline validation or CI smoke coverage, pass a directory that already
+contains the release `.sha256` sidecars:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\generate-packaging-recipes.ps1 `
+  -Tag v1.0.0 `
+  -SidecarDir .\target\release-sidecars `
+  -OutDir .\target\packaging\v1.0.0
+```
+
 ## Homebrew
 
 The generated formula is suitable for a Wildmason-owned tap repository. Review
