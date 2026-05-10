@@ -68,6 +68,14 @@ Or verify all assets for a tag from a checkout:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-release.ps1 -Tag v1.0.0
 ```
 
+For checksum-only verification of an already downloaded asset directory:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-release.ps1 `
+  -AssetDir .\target\release-check\v1.0.0 `
+  -SkipAttestations
+```
+
 Detached GPG or cosign signatures are not required unless downstream packaging
 or distribution channels need them.
 

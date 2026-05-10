@@ -34,6 +34,7 @@ should be called out explicitly.
   buckets backed by GitHub Release assets.
 - Offline sidecar mode and smoke coverage for package-manager recipe
   generation.
+- Offline checksum-only asset directory mode for release verification.
 - Install guide covering release archives, source installs, completions,
   repository policy setup, and package-manager status.
 

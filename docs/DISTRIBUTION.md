@@ -77,6 +77,15 @@ Requirements:
 
 Use `-SkipAttestations` for checksum-only verification.
 
+To verify already downloaded assets without GitHub CLI or network access, pass
+an asset directory and skip attestations:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-release.ps1 `
+  -AssetDir .\target\release-check\v1.0.0 `
+  -SkipAttestations
+```
+
 ## Crates.io
 
 The `1.0.0` crate should be published from the `v1.0.0` tag, not from a later

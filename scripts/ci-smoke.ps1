@@ -23,6 +23,7 @@ $initConfigPath = Join-Path $initConfigDir '.safe-bundle.toml'
 $badConfigPath = Join-Path $initConfigDir 'bad.safe-bundle.toml'
 $packagingSidecarDir = Join-Path $smokeDir 'packaging-sidecars'
 $packagingOutDir = Join-Path $smokeDir 'packaging-out'
+$releaseAssetDir = Join-Path $smokeDir 'release-assets'
 $policyDir = Join-Path $smokeDir 'policy-input'
 $policyConfig = Join-Path $smokeDir '.safe-bundle.toml'
 $policyOut = Join-Path $smokeDir 'policy-redacted'
@@ -94,6 +95,19 @@ if (
 ) {
     throw 'generated Scoop manifest did not include expected version, URL, or hash'
 }
+Write-Host '::endgroup::'
+
+Write-Host '::group::offline release verification'
+New-Item -ItemType Directory -Path $releaseAssetDir | Out-Null
+$releaseAssetName = 'safe-bundle-v9.8.7-test-x86_64-pc-windows-msvc.zip'
+$releaseAssetPath = Join-Path $releaseAssetDir $releaseAssetName
+'synthetic release archive bytes' | Set-Content -NoNewline -LiteralPath $releaseAssetPath
+$releaseAssetHash = (Get-FileHash -LiteralPath $releaseAssetPath -Algorithm SHA256).Hash.ToLowerInvariant()
+"$releaseAssetHash  *$releaseAssetName" |
+    Set-Content -NoNewline -LiteralPath (Join-Path $releaseAssetDir "$releaseAssetName.sha256")
+& (Join-Path $repoRoot 'scripts/verify-release.ps1') `
+    -AssetDir $releaseAssetDir `
+    -SkipAttestations | Out-Null
 Write-Host '::endgroup::'
 
 Write-Host '::group::config init'

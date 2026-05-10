@@ -2,6 +2,7 @@ param(
     [string]$Tag,
     [string]$Repository = 'wildmason/safe-bundle',
     [string]$Destination,
+    [string]$AssetDir,
     [switch]$SkipAttestations
 )
 
@@ -20,7 +21,15 @@ function Invoke-Checked {
     }
 }
 
+function Assert-GitHubCli {
+    if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
+        throw 'GitHub CLI (`gh`) is required to download release assets or verify attestations.'
+    }
+}
+
 function Get-DefaultTag {
+    Assert-GitHubCli
+
     $tag = gh release view --repo $Repository --json tagName --jq '.tagName'
     if ($LASTEXITCODE -ne 0) {
         throw "could not determine latest release tag for $Repository"
@@ -29,23 +38,35 @@ function Get-DefaultTag {
     return $tag.Trim()
 }
 
-if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
-    throw 'GitHub CLI (`gh`) is required to download release assets and verify attestations.'
+if ($AssetDir -and $Destination) {
+    throw 'Pass either -AssetDir or -Destination, not both.'
 }
 
 if (-not $Tag) {
-    $Tag = Get-DefaultTag
+    if ($AssetDir) {
+        $Tag = 'local-assets'
+    }
+    else {
+        $Tag = Get-DefaultTag
+    }
 }
 
-if (-not $Destination) {
-    $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
-    $Destination = Join-Path $repoRoot "target/release-check/$Tag"
+if ($AssetDir) {
+    $Destination = (Resolve-Path -LiteralPath $AssetDir).ProviderPath
 }
+else {
+    Assert-GitHubCli
 
-New-Item -ItemType Directory -Force -Path $Destination | Out-Null
+    if (-not $Destination) {
+        $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
+        $Destination = Join-Path $repoRoot "target/release-check/$Tag"
+    }
 
-Write-Host "Downloading release assets for $Repository $Tag to $Destination"
-Invoke-Checked gh @('release', 'download', $Tag, '--repo', $Repository, '--dir', $Destination, '--clobber')
+    New-Item -ItemType Directory -Force -Path $Destination | Out-Null
+
+    Write-Host "Downloading release assets for $Repository $Tag to $Destination"
+    Invoke-Checked gh @('release', 'download', $Tag, '--repo', $Repository, '--dir', $Destination, '--clobber')
+}
 
 $shaFiles = @(Get-ChildItem -LiteralPath $Destination -File -Filter '*.sha256')
 if ($shaFiles.Count -eq 0) {
@@ -74,6 +95,11 @@ foreach ($shaFile in $shaFiles) {
 }
 
 if (-not $SkipAttestations) {
+    Assert-GitHubCli
+    if ($Tag -eq 'local-assets') {
+        throw 'Tag is required for attestation verification when -AssetDir is used.'
+    }
+
     $assets = @(
         Get-ChildItem -LiteralPath $Destination -File |
             Where-Object { $_.Name -notlike '*.sha256' }
