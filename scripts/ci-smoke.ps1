@@ -18,6 +18,7 @@ $checkSarif = Join-Path $smokeDir 'safe-bundle.sarif'
 $cleanDir = Join-Path $smokeDir 'clean-input'
 $initConfigDir = Join-Path $smokeDir 'init-config'
 $initConfigPath = Join-Path $initConfigDir '.safe-bundle.toml'
+$badConfigPath = Join-Path $initConfigDir 'bad.safe-bundle.toml'
 $policyDir = Join-Path $smokeDir 'policy-input'
 $policyConfig = Join-Path $smokeDir '.safe-bundle.toml'
 $policyOut = Join-Path $smokeDir 'policy-redacted'
@@ -63,6 +64,25 @@ if ($configInitExitCode -eq 0) {
     throw 'config init overwrote an existing config without --force'
 }
 cargo run --quiet -- config init --path $initConfigPath --force | Out-Null
+$validateOutput = cargo run --quiet -- config validate --path $initConfigPath
+$validateText = $validateOutput -join "`n"
+if ($validateText -notmatch 'Valid config') {
+    throw 'config validate did not accept the generated starter config'
+}
+'version = 2' | Set-Content -NoNewline -LiteralPath $badConfigPath
+$previousErrorActionPreference = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
+$configValidateExitCode = $null
+try {
+    cargo run --quiet -- config validate --path $badConfigPath 2>&1 | Out-Null
+    $configValidateExitCode = $LASTEXITCODE
+}
+finally {
+    $ErrorActionPreference = $previousErrorActionPreference
+}
+if ($configValidateExitCode -eq 0) {
+    throw 'config validate accepted an unsupported config version'
+}
 Write-Host '::endgroup::'
 
 Write-Host '::group::completion generation'

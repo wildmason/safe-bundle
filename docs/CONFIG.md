@@ -29,6 +29,23 @@ The generated config is intentionally conservative: it sets `version = 1`,
 leaves allowlists empty, and includes commented examples for custom detectors
 and path overrides.
 
+## Validate
+
+Validate the discovered repository config without scanning files:
+
+```sh
+safe-bundle config validate --require
+```
+
+Validate an explicit file:
+
+```sh
+safe-bundle config validate --path path/to/.safe-bundle.toml
+```
+
+`--require` makes the command fail when discovery does not find a config. An
+explicit `--path` already fails if the file cannot be read or parsed.
+
 ## Example
 
 ```toml

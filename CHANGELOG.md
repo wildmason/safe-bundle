@@ -20,6 +20,8 @@ should be called out explicitly.
   completion generation.
 - `config init` command for generating a starter `.safe-bundle.toml` repository
   policy.
+- `config validate` command for checking discovered or explicit repository
+  policy before running a scrub.
 
 ## 1.0.0 - 2026-05-10
 

@@ -177,6 +177,7 @@ enum RulesCommand {
 #[derive(Debug, Subcommand)]
 enum ConfigCommand {
     Init(ConfigInitArgs),
+    Validate(ConfigValidateArgs),
 }
 
 #[derive(Debug, Args)]
@@ -185,6 +186,14 @@ struct ConfigInitArgs {
     path: Option<PathBuf>,
     #[arg(long)]
     force: bool,
+}
+
+#[derive(Debug, Args)]
+struct ConfigValidateArgs {
+    #[arg(long)]
+    path: Option<PathBuf>,
+    #[arg(long)]
+    require: bool,
 }
 
 pub fn run() -> Result<()> {
@@ -492,6 +501,7 @@ fn rules(args: RulesArgs) -> Result<()> {
 fn config(args: ConfigArgs) -> Result<()> {
     match args.command {
         ConfigCommand::Init(args) => config_init(args),
+        ConfigCommand::Validate(args) => config_validate(args),
     }
 }
 
@@ -517,6 +527,23 @@ fn config_init(args: ConfigInitArgs) -> Result<()> {
     fs::write(&path, config).with_context(|| format!("failed to write {}", path.display()))?;
     println!("Wrote {}", path.display());
     Ok(())
+}
+
+fn config_validate(args: ConfigValidateArgs) -> Result<()> {
+    let config = RuntimeConfig::load(args.path.as_deref(), false)?;
+    match config.loaded_from {
+        Some(path) => {
+            println!("Valid config: {}", path.display());
+            Ok(())
+        }
+        None if args.require => {
+            bail!("no {CONFIG_FILE_NAME} found; pass --path or run config init")
+        }
+        None => {
+            println!("No {CONFIG_FILE_NAME} found.");
+            Ok(())
+        }
+    }
 }
 
 fn completions(args: CompletionsArgs) -> Result<()> {

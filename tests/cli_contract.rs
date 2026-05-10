@@ -22,10 +22,15 @@ fn config_command_exposes_init_workflow() {
     let help = subcommand_help("config");
 
     assert!(help.contains("init"));
+    assert!(help.contains("validate"));
 
     let init_help = nested_subcommand_help("config", "init");
     assert!(init_help.contains("--path"));
     assert!(init_help.contains("--force"));
+
+    let validate_help = nested_subcommand_help("config", "validate");
+    assert!(validate_help.contains("--path"));
+    assert!(validate_help.contains("--require"));
 }
 
 #[test]
