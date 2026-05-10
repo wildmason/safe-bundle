@@ -6,6 +6,24 @@ The project follows semantic versioning before 1.0 with the usual pre-1.0
 caveat: CLI and bundle schemas may change when needed, but breaking changes
 should be called out explicitly.
 
+## Unreleased
+
+### Added
+
+- Golden detector corpus under `fixtures/golden/`, with integration tests that
+  assert expected redactions, preserved benign config values, structured-output
+  validity, and no raw fixture values in public event JSON.
+- Provider detector coverage for AWS secret/session tokens, escaped PEM private
+  keys in JSON strings, Stripe webhook secrets, SendGrid, Datadog, Netlify,
+  Vercel, Postmark, Sentry, Supabase service-role keys, and Twilio auth tokens.
+- `docs/ROADMAP.md` documenting the 0.2-to-1.0 release ladder.
+
+### Changed
+
+- Generic secret-like key/value detection now avoids common benign config words
+  such as `required`, `false`, `active`, and count/policy toggles.
+- Updated direct dependencies: `sha2` 0.11, `toml` 1.1, and `zip` 7.2.
+
 ## 0.1.0 - 2026-05-10
 
 Initial public developer-preview release.

@@ -1,0 +1,175 @@
+[[cases]]
+id = "provider-ci-env"
+profile = "public-issue"
+format = "env"
+min_redactions = 17
+expected_detectors = [
+  "secret-key-value",
+  "aws-secret-access-key-value",
+  "aws-session-token-value",
+  "netlify-auth-token-value",
+  "vercel-token-value",
+  "postmark-token-value",
+  "sentry-auth-token-value",
+  "supabase-service-role-key-value",
+  "azure-storage-account-key",
+  "lemon-squeezy-key-value",
+]
+expected_classes = ["secret.cloud_credential"]
+must_redact = [
+  "fixture_openai_token_abcdefghijklmnopqrstuvwxyz",
+  "fixture_anthropic_token_abcdefghijklmnopqrstuvwxyz",
+  "fixture_github_token_abcdefghijklmnopqrstuvwxyz",
+  "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMN",
+  "fixtureawssessiontokenabcdefghijklmnopqrstuvwxyz",
+  "fixture_stripe_webhook_secret_abcdefghijklmnopqrstuvwxyz",
+  "fixture_sendgrid_token_abcdefghijklmnopqrstuvwxyz",
+  "fixture_datadog_token_abcdefghijklmnopqrstuvwxyz",
+  "abcdefghijklmnopqrstuvwxyz123456",
+  "fixturepostmarktoken1234567890",
+  "fixture_sentry_token_abcdefghijklmnopqrstuvwxyz",
+  "fixture.supabase.service.role.abcdefghijklmnopqrstuvwxyz",
+  "fixture_twilio_token_abcdefghijklmnopqrstuvwxyz",
+  "fixture_gcp_token_abcdefghijklmnopqrstuvwxyz",
+  "fixtureazurestoragekeyabcdefghijklmnopqrstuvwxyz",
+  "ls_live_abcdefghijklmnopqrstuvwxyz",
+]
+must_keep = [
+  "APP_ENV=development",
+  "RETRY_COUNT=3",
+]
+input = '''
+APP_ENV=development
+RETRY_COUNT=3
+OPENAI_API_KEY=fixture_openai_token_abcdefghijklmnopqrstuvwxyz
+ANTHROPIC_API_KEY=fixture_anthropic_token_abcdefghijklmnopqrstuvwxyz
+GITHUB_TOKEN=fixture_github_token_abcdefghijklmnopqrstuvwxyz
+AWS_SECRET_ACCESS_KEY=abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMN
+AWS_SESSION_TOKEN=fixtureawssessiontokenabcdefghijklmnopqrstuvwxyz
+STRIPE_WEBHOOK_SECRET=fixture_stripe_webhook_secret_abcdefghijklmnopqrstuvwxyz
+SENDGRID_API_KEY=fixture_sendgrid_token_abcdefghijklmnopqrstuvwxyz
+DATADOG_API_KEY=fixture_datadog_token_abcdefghijklmnopqrstuvwxyz
+NETLIFY_AUTH_TOKEN=abcdefghijklmnopqrstuvwxyz123456
+VERCEL_TOKEN=abcdefghijklmnopqrstuvwxyz123456
+POSTMARK_SERVER_TOKEN=fixturepostmarktoken1234567890
+SENTRY_AUTH_TOKEN=fixture_sentry_token_abcdefghijklmnopqrstuvwxyz
+SUPABASE_SERVICE_ROLE_KEY=fixture.supabase.service.role.abcdefghijklmnopqrstuvwxyz
+TWILIO_AUTH_TOKEN=fixture_twilio_token_abcdefghijklmnopqrstuvwxyz
+GCP_API_KEY=fixture_gcp_token_abcdefghijklmnopqrstuvwxyz
+AZURE_STORAGE=DefaultEndpointsProtocol=https;AccountName=acct;AccountKey=fixtureazurestoragekeyabcdefghijklmnopqrstuvwxyz;EndpointSuffix=core.windows.net
+LEMON_SQUEEZY_API_KEY=ls_live_abcdefghijklmnopqrstuvwxyz
+'''
+
+[[cases]]
+id = "gcp-service-account-json"
+profile = "public-issue"
+format = "json"
+min_redactions = 2
+expected_detectors = ["escaped-private-key-pem", "contact-email"]
+expected_classes = ["secret.private_key", "identity.contact"]
+must_redact = [
+  "MIIEvFakeFixtureOnly",
+  "safe-bundle-fixture@example.iam.gserviceaccount.com",
+]
+must_keep = [
+  "\"type\": \"service_account\"",
+  "\"project_id\": \"safe-bundle-fixture\"",
+]
+input = '''
+{
+  "type": "service_account",
+  "project_id": "safe-bundle-fixture",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvFakeFixtureOnly\n-----END PRIVATE KEY-----\n",
+  "client_email": "safe-bundle-fixture@example.iam.gserviceaccount.com"
+}
+'''
+
+[[cases]]
+id = "http-support-request"
+profile = "public-issue"
+format = "http"
+min_redactions = 3
+expected_detectors = [
+  "internal-url",
+  "authorization-bearer",
+  "secret-key-value",
+  "contact-email",
+]
+expected_classes = [
+  "network.endpoint",
+  "secret.auth_token",
+  "secret.password",
+  "identity.contact",
+]
+must_redact = [
+  "http://api.internal/v1/status",
+  "abcdefghij12345",
+  "customKey_1234567890",
+  "developer@example.com",
+]
+must_keep = [
+  "GET ",
+  "HTTP/1.1",
+  "User-Agent:",
+]
+input = '''
+GET http://api.internal/v1/status HTTP/1.1
+Host: api.internal
+Authorization: Bearer abcdefghij12345
+X-Api-Key: customKey_1234567890
+From: developer@example.com
+User-Agent: safe-bundle-fixture
+'''
+
+[[cases]]
+id = "structured-yaml"
+profile = "public-issue"
+format = "yaml"
+min_redactions = 3
+expected_detectors = [
+  "connection-string",
+  "private-ipv4",
+  "contact-email",
+]
+expected_classes = [
+  "secret.connection_string",
+  "identity.host",
+  "identity.contact",
+]
+must_redact = [
+  "postgres://app:supersecret@db.internal/app",
+  "supersecret",
+  "10.42.0.7",
+  "ops@example.com",
+]
+must_keep = [
+  "service:",
+  "retries: 2",
+]
+input = '''
+service:
+  name: support-api
+  database: "postgres://app:supersecret@db.internal/app"
+  private_ip: "10.42.0.7"
+  owner: "ops@example.com"
+  retries: 2
+'''
+
+[[false_positive_cases]]
+id = "benign-config-flags"
+profile = "public-issue"
+format = "env"
+must_keep = [
+  "PASSWORD_POLICY=required",
+  "SECRET_ENABLED=false",
+  "TOKEN_COUNT=128",
+  "SESSION_STATE=active",
+  "COOKIE_MODE=disabled",
+]
+input = '''
+PASSWORD_POLICY=required
+SECRET_ENABLED=false
+TOKEN_COUNT=128
+SESSION_STATE=active
+COOKIE_MODE=disabled
+'''

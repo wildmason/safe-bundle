@@ -7,6 +7,7 @@ use std::sync::LazyLock;
 pub struct Candidate {
     pub class: RedactionClass,
     pub confidence: Confidence,
+    pub specificity: u8,
     pub detector_id: &'static str,
     pub detector_version: &'static str,
     pub reason: &'static str,
@@ -22,6 +23,7 @@ struct Detector {
     regex: Regex,
     capture_group: usize,
     context_key_group: Option<usize>,
+    specificity: u8,
 }
 
 impl Detector {
@@ -44,11 +46,17 @@ impl Detector {
             regex: Regex::new(pattern).expect("detector regex must compile"),
             capture_group,
             context_key_group: None,
+            specificity: 0,
         }
     }
 
     fn with_context_key_group(mut self, group: usize) -> Self {
         self.context_key_group = Some(group);
+        self
+    }
+
+    fn with_specificity(mut self, specificity: u8) -> Self {
+        self.specificity = specificity;
         self
     }
 }
@@ -63,6 +71,15 @@ static DETECTORS: LazyLock<Vec<Detector>> = LazyLock::new(|| {
             r"(?s)-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----.*?-----END [A-Z0-9 ]*PRIVATE KEY-----",
             0,
         ),
+        Detector::new(
+            "escaped-private-key-pem",
+            RedactionClass::SecretPrivateKey,
+            Confidence::High,
+            "escaped PEM private key block",
+            r#"-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----\\n(?:[^"\\]|\\.)*?-----END [A-Z0-9 ]*PRIVATE KEY-----\\n?"#,
+            0,
+        )
+        .with_specificity(20),
         Detector::new(
             "authorization-bearer",
             RedactionClass::SecretAuthToken,
@@ -122,6 +139,26 @@ static DETECTORS: LazyLock<Vec<Detector>> = LazyLock::new(|| {
             0,
         ),
         Detector::new(
+            "aws-secret-access-key-value",
+            RedactionClass::SecretCloudCredential,
+            Confidence::High,
+            "AWS secret access key assignment",
+            r#"(?i)\b(aws_secret_access_key|aws_secret_key)\b\s*[:=]\s*['"]?([A-Za-z0-9/+=]{40})"#,
+            2,
+        )
+        .with_context_key_group(1)
+        .with_specificity(20),
+        Detector::new(
+            "aws-session-token-value",
+            RedactionClass::SecretCloudCredential,
+            Confidence::High,
+            "AWS session token assignment",
+            r#"(?i)\b(aws_session_token|aws_security_token)\b\s*[:=]\s*['"]?([A-Za-z0-9/+=]{20,})"#,
+            2,
+        )
+        .with_context_key_group(1)
+        .with_specificity(20),
+        Detector::new(
             "github-token",
             RedactionClass::SecretCloudCredential,
             Confidence::High,
@@ -138,6 +175,15 @@ static DETECTORS: LazyLock<Vec<Detector>> = LazyLock::new(|| {
             0,
         ),
         Detector::new(
+            "stripe-webhook-secret",
+            RedactionClass::SecretCloudCredential,
+            Confidence::High,
+            "Stripe webhook signing secret",
+            r"\bwhsec_[A-Za-z0-9]{16,}\b",
+            0,
+        )
+        .with_specificity(20),
+        Detector::new(
             "npm-token",
             RedactionClass::SecretCloudCredential,
             Confidence::High,
@@ -146,6 +192,15 @@ static DETECTORS: LazyLock<Vec<Detector>> = LazyLock::new(|| {
             0,
         ),
         Detector::new(
+            "sendgrid-api-key",
+            RedactionClass::SecretCloudCredential,
+            Confidence::High,
+            "SendGrid API key",
+            r"\bSG\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}\b",
+            0,
+        )
+        .with_specificity(20),
+        Detector::new(
             "openai-api-key",
             RedactionClass::SecretCloudCredential,
             Confidence::High,
@@ -153,6 +208,76 @@ static DETECTORS: LazyLock<Vec<Detector>> = LazyLock::new(|| {
             r"\bsk-(?:proj-[A-Za-z0-9_-]{20,}|svcacct-[A-Za-z0-9_-]{20,}|[A-Za-z0-9]{20,})\b",
             0,
         ),
+        Detector::new(
+            "datadog-api-key-value",
+            RedactionClass::SecretCloudCredential,
+            Confidence::High,
+            "Datadog API key assignment",
+            r#"(?i)\b(datadog_api_key|dd_api_key)\b\s*[:=]\s*['"]?([a-f0-9]{32})"#,
+            2,
+        )
+        .with_context_key_group(1)
+        .with_specificity(20),
+        Detector::new(
+            "netlify-auth-token-value",
+            RedactionClass::SecretCloudCredential,
+            Confidence::High,
+            "Netlify auth token assignment",
+            r#"(?i)\b(netlify_auth_token|netlify_token)\b\s*[:=]\s*['"]?([A-Za-z0-9_-]{20,})"#,
+            2,
+        )
+        .with_context_key_group(1)
+        .with_specificity(20),
+        Detector::new(
+            "vercel-token-value",
+            RedactionClass::SecretCloudCredential,
+            Confidence::High,
+            "Vercel token assignment",
+            r#"(?i)\b(vercel_token|vercel_auth_token)\b\s*[:=]\s*['"]?([A-Za-z0-9_-]{20,})"#,
+            2,
+        )
+        .with_context_key_group(1)
+        .with_specificity(20),
+        Detector::new(
+            "postmark-token-value",
+            RedactionClass::SecretCloudCredential,
+            Confidence::High,
+            "Postmark server token assignment",
+            r#"(?i)\b(postmark_(?:server_)?token|postmark_api_token)\b\s*[:=]\s*['"]?([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[A-Za-z0-9]{20,})"#,
+            2,
+        )
+        .with_context_key_group(1)
+        .with_specificity(20),
+        Detector::new(
+            "sentry-auth-token-value",
+            RedactionClass::SecretCloudCredential,
+            Confidence::High,
+            "Sentry auth token assignment",
+            r#"(?i)\b(sentry_auth_token|sentry_token)\b\s*[:=]\s*['"]?([A-Za-z0-9_-]{20,})"#,
+            2,
+        )
+        .with_context_key_group(1)
+        .with_specificity(20),
+        Detector::new(
+            "supabase-service-role-key-value",
+            RedactionClass::SecretCloudCredential,
+            Confidence::High,
+            "Supabase service role key assignment",
+            r#"(?i)\b(supabase_service_role_key|supabase_service_key)\b\s*[:=]\s*['"]?([A-Za-z0-9._-]{20,})"#,
+            2,
+        )
+        .with_context_key_group(1)
+        .with_specificity(20),
+        Detector::new(
+            "twilio-auth-token-value",
+            RedactionClass::SecretCloudCredential,
+            Confidence::High,
+            "Twilio auth token assignment",
+            r#"(?i)\b(twilio_auth_token)\b\s*[:=]\s*['"]?([a-f0-9]{32})"#,
+            2,
+        )
+        .with_context_key_group(1)
+        .with_specificity(20),
         Detector::new(
             "anthropic-api-key",
             RedactionClass::SecretCloudCredential,
@@ -296,9 +421,16 @@ pub fn detect(text: &str) -> Vec<Candidate> {
                 context.insert("key".to_string(), key.as_str().to_string());
             }
 
+            if detector.info.id == "secret-key-value"
+                && !looks_like_generic_secret(raw, context.get("key").map(String::as_str))
+            {
+                continue;
+            }
+
             candidates.push(Candidate {
                 class: detector.info.class,
                 confidence: detector.info.confidence,
+                specificity: detector.specificity,
                 detector_id: detector.info.id,
                 detector_version: detector.info.version,
                 reason: detector.info.reason,
@@ -311,6 +443,71 @@ pub fn detect(text: &str) -> Vec<Candidate> {
     }
 
     candidates
+}
+
+fn looks_like_generic_secret(raw: &str, key: Option<&str>) -> bool {
+    let value = raw.trim_matches(|ch| ch == '"' || ch == '\'');
+    if value.is_empty() {
+        return false;
+    }
+
+    let lower_value = value.to_ascii_lowercase();
+    if matches!(
+        lower_value.as_str(),
+        "true"
+            | "false"
+            | "null"
+            | "none"
+            | "required"
+            | "optional"
+            | "enabled"
+            | "disabled"
+            | "active"
+            | "inactive"
+            | "default"
+            | "example"
+            | "changeme"
+            | "redacted"
+    ) {
+        return false;
+    }
+
+    let lower_key = key.unwrap_or_default().to_ascii_lowercase();
+    if lower_key.contains("policy")
+        || lower_key.contains("count")
+        || lower_key.contains("enabled")
+        || lower_key.contains("disabled")
+        || lower_key.contains("required")
+    {
+        return false;
+    }
+
+    let password_like =
+        lower_key.contains("password") || lower_key.contains("passwd") || lower_key.contains("pwd");
+    let min_len = if password_like { 6 } else { 8 };
+    if value.len() < min_len {
+        return false;
+    }
+    if value.len() >= 20 {
+        return true;
+    }
+
+    let has_lower = value.chars().any(|ch| ch.is_ascii_lowercase());
+    let has_upper = value.chars().any(|ch| ch.is_ascii_uppercase());
+    let has_digit = value.chars().any(|ch| ch.is_ascii_digit());
+    let has_symbol = value
+        .chars()
+        .any(|ch| !ch.is_ascii_alphanumeric() && !ch.is_whitespace());
+    let category_count = [has_lower, has_upper, has_digit, has_symbol]
+        .into_iter()
+        .filter(|present| *present)
+        .count();
+
+    if password_like {
+        return category_count >= 2 || value.len() >= 10;
+    }
+
+    category_count >= 2 || value.len() >= 16
 }
 
 #[cfg(test)]
@@ -373,6 +570,18 @@ mod tests {
             ),
             format!("GCP_API_KEY={}", ["AI", "za", "abcdefghijklmnopqrstuvwxyz123456789"].concat()),
             "AZURE_STORAGE=DefaultEndpointsProtocol=https;AccountName=acct;AccountKey=abcdefghijklmnopqrstuvwxyz1234567890+/=;EndpointSuffix=core.windows.net".to_string(),
+            "AWS_SECRET_ACCESS_KEY=abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMN".to_string(),
+            "AWS_SESSION_TOKEN=IQoJb3JpZ2luX2VjEGgaCXVzLWVhc3QtMSJGMEQCIDfixture".to_string(),
+            "STRIPE_WEBHOOK_SECRET=whsec_abcdefghijklmnopqrstuvwxyz".to_string(),
+            "SENDGRID_API_KEY=SG.abcdefghijklmnopqrstuv.abcdefghijklmnopqrstuvwxyz".to_string(),
+            "DATADOG_API_KEY=0123456789abcdef0123456789abcdef".to_string(),
+            "NETLIFY_AUTH_TOKEN=abcdefghijklmnopqrstuvwxyz123456".to_string(),
+            "VERCEL_TOKEN=abcdefghijklmnopqrstuvwxyz123456".to_string(),
+            "POSTMARK_SERVER_TOKEN=12345678-1234-1234-1234-123456789abc".to_string(),
+            "SENTRY_AUTH_TOKEN=abcdefghijklmnopqrstuvwxyz123456".to_string(),
+            "SUPABASE_SERVICE_ROLE_KEY=eyJabcdefghijklmnop.qrstuvwxyz123456.abcdefghijklmnop".to_string(),
+            "TWILIO_AUTH_TOKEN=0123456789abcdef0123456789abcdef".to_string(),
+            r#"{"private_key":"-----BEGIN PRIVATE KEY-----\nMIIEvFakeFixtureOnly\n-----END PRIVATE KEY-----\n"}"#.to_string(),
         ]
         .join("\n");
         let found = detect(&input);
@@ -392,8 +601,29 @@ mod tests {
             "lemon-squeezy-key-value",
             "gcp-api-key",
             "azure-storage-account-key",
+            "aws-secret-access-key-value",
+            "aws-session-token-value",
+            "stripe-webhook-secret",
+            "sendgrid-api-key",
+            "datadog-api-key-value",
+            "netlify-auth-token-value",
+            "vercel-token-value",
+            "postmark-token-value",
+            "sentry-auth-token-value",
+            "supabase-service-role-key-value",
+            "twilio-auth-token-value",
+            "escaped-private-key-pem",
         ] {
             assert!(ids.contains(&expected), "missing detector {expected}");
         }
+    }
+
+    #[test]
+    fn generic_key_value_detector_avoids_common_config_words() {
+        let found = detect(
+            "password_policy=required\nsecret_enabled=false\ntoken_count=128\nsession=active\n",
+        );
+
+        assert!(found.is_empty());
     }
 }

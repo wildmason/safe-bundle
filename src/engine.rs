@@ -197,7 +197,9 @@ fn resolve_overlaps(mut candidates: Vec<Candidate>) -> Vec<Candidate> {
             candidate.start,
             Reverse(candidate.class.sensitivity()),
             Reverse(candidate.confidence.rank()),
+            Reverse(candidate.specificity),
             Reverse(candidate.end.saturating_sub(candidate.start)),
+            candidate.detector_id,
         )
     });
 
@@ -256,7 +258,11 @@ mod tests {
     #[test]
     fn placeholders_are_stable_within_run() {
         let mut redactor = Redactor::new(Policy::new(Profile::Support, PlaceholderStyle::Bracket));
-        let document = redactor.redact_text("token=abcdefghij token=abcdefghij", "x.env", "env");
+        let document = redactor.redact_text(
+            "token=abcdefghij12345 token=abcdefghij12345",
+            "x.env",
+            "env",
+        );
 
         assert_eq!(document.events.len(), 2);
         assert_eq!(

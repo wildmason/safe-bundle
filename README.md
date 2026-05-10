@@ -30,9 +30,10 @@ Supported MVP detectors include:
 - PEM private keys.
 - Bearer tokens and JWT-like tokens.
 - Secret-like key/value pairs.
-- Common cloud credentials: AWS, GitHub, Stripe, npm, OpenAI, Anthropic,
-  Slack, Discord, Fly.io, Resend, Lemon Squeezy, Google API keys, and Azure
-  storage account keys.
+- Common cloud credentials: AWS, GitHub, Stripe, Stripe webhooks, npm, OpenAI,
+  Anthropic, Slack, Discord, Fly.io, Resend, Lemon Squeezy, Google API keys,
+  Azure storage account keys, SendGrid, Datadog, Netlify, Vercel, Postmark,
+  Sentry, Supabase service-role keys, and Twilio auth tokens.
 - Database and service connection strings.
 - URL password segments.
 - Windows and Unix home directory usernames.
@@ -173,6 +174,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci-smoke.ps1
 Additional project docs:
 
 - [Threat model](docs/THREAT_MODEL.md)
+- [Roadmap to 1.0](docs/ROADMAP.md)
 - [Release process](docs/RELEASE.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)
