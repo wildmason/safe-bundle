@@ -22,6 +22,8 @@ should be called out explicitly.
   policy.
 - `config validate` command for checking discovered or explicit repository
   policy before running a scrub.
+- Package-manager recipe generation script and docs for Homebrew taps and Scoop
+  buckets backed by GitHub Release assets.
 
 ## 1.0.0 - 2026-05-10
 

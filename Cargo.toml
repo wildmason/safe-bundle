@@ -23,6 +23,7 @@ include = [
     "/fixtures/**",
     "/scripts/ci-smoke.ps1",
     "/scripts/dependency-policy.ps1",
+    "/scripts/generate-packaging-recipes.ps1",
     "/scripts/install.ps1",
     "/scripts/verify-release.ps1",
     "/src/**",

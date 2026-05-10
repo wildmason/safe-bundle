@@ -3,6 +3,9 @@
 `safe-bundle` is distributed through GitHub Releases. Crates.io publication is
 supported, but remains a credential-gated maintainer step.
 
+Package-manager recipe generation is documented in
+[package manager recipes](PACKAGING.md).
+
 ## GitHub Releases
 
 Each release publishes platform archives, a packaged crate archive, SHA-256

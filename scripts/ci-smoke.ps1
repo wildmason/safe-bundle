@@ -38,7 +38,7 @@ if ($rulesText -notmatch 'private-key-pem' -or $rulesText -notmatch 'github-toke
 Write-Host '::endgroup::'
 
 Write-Host '::group::release helper script syntax'
-foreach ($scriptName in @('install.ps1', 'verify-release.ps1')) {
+foreach ($scriptName in @('generate-packaging-recipes.ps1', 'install.ps1', 'verify-release.ps1')) {
     $scriptPath = Join-Path $repoRoot "scripts/$scriptName"
     $null = [scriptblock]::Create((Get-Content -Raw -LiteralPath $scriptPath))
 }
