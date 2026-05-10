@@ -66,6 +66,8 @@ Goal: reduce supply-chain, parser, and platform risk.
 
 ## 0.7 - Documentation and Adoption
 
+Status: shipped on `main`.
+
 Goal: make the tool understandable by someone who did not build it.
 
 - Add "before opening a public issue" workflow documentation.

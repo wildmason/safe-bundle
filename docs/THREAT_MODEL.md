@@ -13,11 +13,16 @@ This document defines the release-time security posture for `safe-bundle`.
 
 ## Non-Goals
 
-- Legal anonymization or de-identification.
-- Perfect detection of arbitrary sensitive free text.
-- Malware scanning.
-- Safe execution or interpretation of input files.
-- Automatic deletion of original files.
+- Legal anonymization or de-identification. `safe-bundle` reduces developer
+  sharing risk, but it does not decide whether data is anonymous under any law.
+- Perfect detection of arbitrary sensitive free text. A sentence, stack trace,
+  or source snippet can still reveal private information without matching a
+  detector.
+- Malware scanning. The tool treats input files as data and does not decide
+  whether they are safe to run.
+- Safe execution or interpretation of input files. The CLI reads text and
+  validates supported structured formats; it does not execute artifacts.
+- Automatic deletion of original files. Source files stay where they are.
 
 ## Assets
 

@@ -29,6 +29,11 @@ should be called out explicitly.
 - Release workflow smoke tests for packaged binary archives.
 - Property-style hardening tests for redaction ordering, archive path
   sanitization, and structured format preservation.
+- User-facing workflow docs for public issues, support handoff, LLM prompt
+  cleanup, internal triage, and CI preflight.
+- Detector contribution guide with golden corpus and false-positive fixture
+  requirements.
+- User-facing guarantees and limits documentation.
 - Provider detector coverage for AWS secret/session tokens, escaped PEM private
   keys in JSON strings, Stripe webhook secrets, SendGrid, Datadog, Netlify,
   Vercel, Postmark, Sentry, Supabase service-role keys, and Twilio auth tokens.

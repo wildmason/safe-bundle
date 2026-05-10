@@ -26,6 +26,8 @@ pwsh ./scripts/ci-smoke.ps1
 Package verification:
 
 ```sh
+cargo +1.85.0 check --locked
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dependency-policy.ps1
 cargo package --locked
 ```
 
@@ -44,6 +46,10 @@ Detector changes should include:
 Keep provider-looking test strings synthetic. When a realistic shape is needed
 in Rust tests, build it from separate string fragments so repository secret
 scanning does not see a full token literal in source.
+
+See [Detector Contribution Guide](docs/DETECTOR_GUIDE.md) for the golden corpus
+format, fixture requirements, false-positive expectations, and custom-detector
+guidance.
 
 ## Public Metadata Contract
 

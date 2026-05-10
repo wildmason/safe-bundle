@@ -66,6 +66,19 @@ During development:
 cargo run -- --help
 ```
 
+## Common Workflows
+
+- Before opening a public issue, build a `public-issue` bundle, verify it with
+  `inspect --verify`, and review every file under `files/`.
+- For private support handoff, build a `support` bundle and keep the private
+  receipt local for sender-side correlation.
+- Before pasting logs or config into an LLM chat, run `scrub` with the
+  `llm-prompt` profile and review the redacted text.
+- For CI, use `scrub --check` and optionally write SARIF for GitHub code
+  scanning.
+
+See [workflows](docs/WORKFLOWS.md) for copy-pasteable examples.
+
 ## Repository Policy
 
 `safe-bundle` can load `.safe-bundle.toml` from the current directory or an
@@ -188,12 +201,14 @@ cargo run -- inspect target/support.safe-bundle.zip --verify
 - `internal`: redacts secrets/auth material but preserves more local detail.
 - `strict`: redacts every built-in detector class.
 
-## Limits
+## Guarantees and Limits
 
-This is a developer safety tool, not a legal de-identification guarantee. It
-uses deterministic detectors for known high-value classes and preserves
-diagnostic structure where possible. Arbitrary free text can still contain
-sensitive information that no local detector recognizes.
+`safe-bundle` keeps processing local, writes public metadata without raw matched
+values, and verifies generated bundle integrity. It does not guarantee legal
+anonymization, understand every sensitive sentence, or make skipped files safe.
+Review the redacted output before sharing it.
+
+See [guarantees and limits](docs/LIMITS.md) for the full user-facing contract.
 
 ## Development
 
@@ -218,6 +233,9 @@ Additional project docs:
 - [Configuration](docs/CONFIG.md)
 - [Bundle format](docs/BUNDLE_FORMAT.md)
 - [Automation](docs/AUTOMATION.md)
+- [Workflows](docs/WORKFLOWS.md)
+- [Guarantees and limits](docs/LIMITS.md)
+- [Detector contribution guide](docs/DETECTOR_GUIDE.md)
 - [Roadmap to 1.0](docs/ROADMAP.md)
 - [Release process](docs/RELEASE.md)
 - [Contributing](CONTRIBUTING.md)
