@@ -260,4 +260,23 @@ profile = "strict"
             Profile::Strict
         );
     }
+
+    #[test]
+    fn rejects_unknown_fields_and_unsupported_versions() {
+        let unknown = RuntimeConfig::from_toml(
+            r#"
+version = 1
+mystery = true
+"#,
+            None,
+        )
+        .unwrap_err()
+        .to_string();
+        assert!(unknown.contains("failed to parse safe-bundle config"));
+
+        let unsupported = RuntimeConfig::from_toml("version = 2\n", None)
+            .unwrap_err()
+            .to_string();
+        assert!(unsupported.contains("unsupported safe-bundle config version 2"));
+    }
 }

@@ -1,0 +1,83 @@
+use clap::CommandFactory;
+use safe_bundle::cli::Cli;
+
+#[test]
+fn cli_top_level_commands_are_stable_for_1_0() {
+    let command = Cli::command();
+    let subcommands = command
+        .get_subcommands()
+        .map(|command| command.get_name().to_string())
+        .collect::<Vec<_>>();
+
+    assert_eq!(subcommands, ["scrub", "bundle", "inspect", "rules"]);
+}
+
+#[test]
+fn scrub_cli_contract_includes_release_candidate_flags() {
+    let help = subcommand_help("scrub");
+
+    for flag in [
+        "--profile",
+        "--format",
+        "--include",
+        "--exclude",
+        "--max-file-size",
+        "--placeholder-style",
+        "--fail-on",
+        "--config",
+        "--no-config",
+        "--stdin",
+        "--out",
+        "--receipt",
+        "--events",
+        "--sarif",
+        "--summary",
+        "--dry-run",
+        "--check",
+    ] {
+        assert!(help.contains(flag), "scrub help is missing {flag}");
+    }
+}
+
+#[test]
+fn bundle_cli_contract_includes_release_candidate_flags() {
+    let help = subcommand_help("bundle");
+
+    for flag in [
+        "--profile",
+        "--format",
+        "--include",
+        "--exclude",
+        "--max-file-size",
+        "--placeholder-style",
+        "--fail-on",
+        "--config",
+        "--no-config",
+        "--out",
+        "--receipt",
+        "--dry-run",
+    ] {
+        assert!(help.contains(flag), "bundle help is missing {flag}");
+    }
+}
+
+#[test]
+fn inspect_and_rules_cli_contracts_are_stable_for_1_0() {
+    let inspect_help = subcommand_help("inspect");
+    assert!(inspect_help.contains("--summary"));
+    assert!(inspect_help.contains("--verify"));
+
+    let rules_help = subcommand_help("rules");
+    assert!(rules_help.contains("list"));
+    assert!(rules_help.contains("test"));
+}
+
+fn subcommand_help(name: &str) -> String {
+    let command = Cli::command();
+    let mut subcommand = command
+        .get_subcommands()
+        .find(|command| command.get_name() == name)
+        .unwrap_or_else(|| panic!("missing {name} subcommand"))
+        .clone();
+    subcommand.render_long_help().to_string()
+}

@@ -236,6 +236,7 @@ Additional project docs:
 - [Workflows](docs/WORKFLOWS.md)
 - [Guarantees and limits](docs/LIMITS.md)
 - [Detector contribution guide](docs/DETECTOR_GUIDE.md)
+- [Release candidate checklist](docs/RELEASE_CANDIDATE.md)
 - [Roadmap to 1.0](docs/ROADMAP.md)
 - [Release process](docs/RELEASE.md)
 - [Contributing](CONTRIBUTING.md)

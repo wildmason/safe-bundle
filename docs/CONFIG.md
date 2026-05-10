@@ -5,6 +5,11 @@ place `.safe-bundle.toml` in the repository root or pass `--config <path>`.
 Discovery walks from the current directory upward. Use `--no-config` to force
 built-in behavior.
 
+The current configuration schema is version `1`. Unknown fields are rejected so
+spelling mistakes and unsupported policy keys fail closed. `1.x` releases must
+continue reading version `1` configs; incompatible changes require a new config
+version.
+
 ## Example
 
 ```toml

@@ -34,6 +34,10 @@ should be called out explicitly.
 - Detector contribution guide with golden corpus and false-positive fixture
   requirements.
 - User-facing guarantees and limits documentation.
+- Release-candidate checklist covering accuracy, public artifact safety, CLI,
+  config, bundle, hardening, and publication gates.
+- CLI contract tests for the 1.0 command surface.
+- GitHub artifact attestations for release crate and binary archives.
 - Provider detector coverage for AWS secret/session tokens, escaped PEM private
   keys in JSON strings, Stripe webhook secrets, SendGrid, Datadog, Netlify,
   Vercel, Postmark, Sentry, Supabase service-role keys, and Twilio auth tokens.

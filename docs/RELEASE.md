@@ -52,12 +52,18 @@ it is uploaded.
 
 ## Integrity and Provenance
 
-For `0.x` releases, every uploaded archive must have a SHA-256 sidecar file and
-the release workflow must smoke-test the packaged binary before upload.
+Every uploaded archive must have a SHA-256 sidecar file. The release workflow
+extracts and smoke-tests each packaged binary before upload.
 
-Before the `1.0.0` release candidate, add GitHub artifact attestations for the
-crate archive and binary archives. Detached GPG or cosign signatures are not
-required unless downstream packaging or distribution channels need them.
+The release workflow also generates GitHub artifact attestations for the crate
+archive and binary archives. Verify them with:
+
+```sh
+gh attestation verify <artifact> -R wildmason/safe-bundle
+```
+
+Detached GPG or cosign signatures are not required unless downstream packaging
+or distribution channels need them.
 
 ## Crates.io
 

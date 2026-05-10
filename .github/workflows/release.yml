@@ -7,6 +7,9 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
+  artifact-metadata: write
 
 jobs:
   verify:
@@ -98,6 +101,11 @@ jobs:
           "$hash  $($crate.Name)" | Set-Content -NoNewline -LiteralPath $shaPath
           gh release upload $env:GITHUB_REF_NAME $crate.FullName $shaPath --repo $env:GITHUB_REPOSITORY --clobber
 
+      - name: Attest crate archive
+        uses: actions/attest@v4
+        with:
+          subject-path: target/package/*.crate
+
   binaries:
     name: Build ${{ matrix.target }}
     needs: create-release
@@ -187,6 +195,11 @@ jobs:
           if ($redacted -match 'ghp_abcdefghijklmnopqrstuvwxyz') {
               throw 'packaged binary scrub leaked the fixture token'
           }
+
+      - name: Attest binary archive
+        uses: actions/attest@v4
+        with:
+          subject-path: safe-bundle-${{ github.ref_name }}-${{ matrix.target }}${{ matrix.archive_ext }}
 
       - name: Upload binary and checksum
         shell: pwsh

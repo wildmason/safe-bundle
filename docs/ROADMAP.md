@@ -78,6 +78,8 @@ Goal: make the tool understandable by someone who did not build it.
 
 ## 0.9 - Release Candidate
 
+Status: shipped on `main`.
+
 Goal: freeze the CLI and bundle schema before `1.0.0`.
 
 - No known high-severity false negatives in the golden corpus.
