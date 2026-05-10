@@ -8,6 +8,10 @@ should be called out explicitly.
 
 ## Unreleased
 
+## 1.0.0 - 2026-05-10
+
+Stable local safety contract release.
+
 ### Added
 
 - Golden detector corpus under `fixtures/golden/`, with integration tests that

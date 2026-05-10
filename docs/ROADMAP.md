@@ -92,6 +92,8 @@ Goal: freeze the CLI and bundle schema before `1.0.0`.
 
 ## 1.0 - Stable Local Safety Contract
 
+Status: shipped on `main`.
+
 `1.0.0` means users can install `safe-bundle`, configure it in a repository,
 run it locally or in CI, trust the public bundle format, and understand exactly
 what the tool does and does not guarantee.

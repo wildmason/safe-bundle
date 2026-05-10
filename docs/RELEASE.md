@@ -28,8 +28,8 @@
 Use an annotated version tag:
 
 ```sh
-git tag -a v0.1.0 -m "safe-bundle v0.1.0"
-git push origin v0.1.0
+git tag -a v1.0.0 -m "safe-bundle v1.0.0"
+git push origin v1.0.0
 ```
 
 The `Release` workflow verifies the tag, creates a draft GitHub Release, builds
