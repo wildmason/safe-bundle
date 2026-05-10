@@ -18,6 +18,17 @@ fn cli_top_level_commands_are_stable_for_1_0() {
 }
 
 #[test]
+fn config_command_exposes_init_workflow() {
+    let help = subcommand_help("config");
+
+    assert!(help.contains("init"));
+
+    let init_help = nested_subcommand_help("config", "init");
+    assert!(init_help.contains("--path"));
+    assert!(init_help.contains("--force"));
+}
+
+#[test]
 fn completions_command_exposes_supported_shells() {
     let help = subcommand_help("completions");
 
@@ -92,6 +103,19 @@ fn subcommand_help(name: &str) -> String {
         .get_subcommands()
         .find(|command| command.get_name() == name)
         .unwrap_or_else(|| panic!("missing {name} subcommand"))
+        .clone();
+    subcommand.render_long_help().to_string()
+}
+
+fn nested_subcommand_help(parent: &str, child: &str) -> String {
+    let command = Cli::command();
+    let mut subcommand = command
+        .get_subcommands()
+        .find(|command| command.get_name() == parent)
+        .unwrap_or_else(|| panic!("missing {parent} subcommand"))
+        .get_subcommands()
+        .find(|command| command.get_name() == child)
+        .unwrap_or_else(|| panic!("missing {parent} {child} subcommand"))
         .clone();
     subcommand.render_long_help().to_string()
 }

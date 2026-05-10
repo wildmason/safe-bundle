@@ -18,6 +18,8 @@ should be called out explicitly.
 - CI smoke coverage for release helper script syntax.
 - `completions <shell>` command for Bash, Elvish, Fish, PowerShell, and Zsh
   completion generation.
+- `config init` command for generating a starter `.safe-bundle.toml` repository
+  policy.
 
 ## 1.0.0 - 2026-05-10
 

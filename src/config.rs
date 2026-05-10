@@ -7,7 +7,34 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-const CONFIG_FILE_NAME: &str = ".safe-bundle.toml";
+pub const CONFIG_FILE_NAME: &str = ".safe-bundle.toml";
+
+pub fn starter_config_toml() -> &'static str {
+    r#"# safe-bundle repository policy.
+# Discovery walks from the current directory upward until this file is found.
+# Pass --no-config to ignore repository policy for a single command.
+
+version = 1
+
+[allowlist]
+literals = []
+regexes = []
+
+# Add repository-specific detectors by uncommenting and editing this block.
+# [[custom_detectors]]
+# id = "ticket-token"
+# pattern = "ticket_[A-Za-z0-9_]{12,}"
+# class = "secret.api_key"
+# confidence = "high"
+# reason = "ticket fixture token"
+# capture_group = 0
+
+# Use first-match path overrides to preserve more context in selected paths.
+# [[path_overrides]]
+# pattern = "public/**"
+# profile = "internal"
+"#
+}
 
 #[derive(Debug, Default, Deserialize)]
 #[serde(default, deny_unknown_fields)]
@@ -278,5 +305,16 @@ mystery = true
             .unwrap_err()
             .to_string();
         assert!(unsupported.contains("unsupported safe-bundle config version 2"));
+    }
+
+    #[test]
+    fn starter_config_is_valid_version_one_toml() {
+        let config = RuntimeConfig::from_toml(starter_config_toml(), None).unwrap();
+
+        assert!(config.loaded_from.is_none());
+        assert_eq!(
+            config.profile_for_path("anything.env", Profile::PublicIssue),
+            Profile::PublicIssue
+        );
     }
 }

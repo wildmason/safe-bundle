@@ -101,6 +101,12 @@ ancestor. Use it for repository-local allowlists, custom detectors, and per-path
 profile overrides. Pass `--config <path>` for an explicit file or `--no-config`
 to force built-in behavior.
 
+Create a starter policy file:
+
+```sh
+safe-bundle config init
+```
+
 ```toml
 version = 1
 

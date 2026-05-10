@@ -16,6 +16,8 @@ $scrubEvents = Join-Path $smokeDir 'scrub-redactions.jsonl'
 $dryRunEvents = Join-Path $smokeDir 'dry-run-redactions.jsonl'
 $checkSarif = Join-Path $smokeDir 'safe-bundle.sarif'
 $cleanDir = Join-Path $smokeDir 'clean-input'
+$initConfigDir = Join-Path $smokeDir 'init-config'
+$initConfigPath = Join-Path $initConfigDir '.safe-bundle.toml'
 $policyDir = Join-Path $smokeDir 'policy-input'
 $policyConfig = Join-Path $smokeDir '.safe-bundle.toml'
 $policyOut = Join-Path $smokeDir 'policy-redacted'
@@ -39,6 +41,28 @@ foreach ($scriptName in @('install.ps1', 'verify-release.ps1')) {
     $scriptPath = Join-Path $repoRoot "scripts/$scriptName"
     $null = [scriptblock]::Create((Get-Content -Raw -LiteralPath $scriptPath))
 }
+Write-Host '::endgroup::'
+
+Write-Host '::group::config init'
+cargo run --quiet -- config init --path $initConfigPath | Out-Null
+$initConfigText = Get-Content -Raw -LiteralPath $initConfigPath
+if ($initConfigText -notmatch 'version = 1' -or $initConfigText -notmatch '\[allowlist\]') {
+    throw 'config init did not write the expected starter config'
+}
+$previousErrorActionPreference = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
+$configInitExitCode = $null
+try {
+    cargo run --quiet -- config init --path $initConfigPath 2>&1 | Out-Null
+    $configInitExitCode = $LASTEXITCODE
+}
+finally {
+    $ErrorActionPreference = $previousErrorActionPreference
+}
+if ($configInitExitCode -eq 0) {
+    throw 'config init overwrote an existing config without --force'
+}
+cargo run --quiet -- config init --path $initConfigPath --force | Out-Null
 Write-Host '::endgroup::'
 
 Write-Host '::group::completion generation'

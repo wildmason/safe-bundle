@@ -1,5 +1,5 @@
 use crate::archive::{BundleOptions, build_bundle, inspect_bundle, verify_bundle};
-use crate::config::RuntimeConfig;
+use crate::config::{CONFIG_FILE_NAME, RuntimeConfig, starter_config_toml};
 use crate::detectors::detector_infos;
 use crate::engine::{Policy, Redactor};
 use crate::formats::validate_structure_preserved;
@@ -32,6 +32,7 @@ enum Command {
     Bundle(BundleArgs),
     Inspect(InspectArgs),
     Rules(RulesArgs),
+    Config(ConfigArgs),
     Completions(CompletionsArgs),
 }
 
@@ -140,6 +141,12 @@ struct RulesArgs {
 }
 
 #[derive(Debug, Args)]
+struct ConfigArgs {
+    #[command(subcommand)]
+    command: ConfigCommand,
+}
+
+#[derive(Debug, Args)]
 struct CompletionsArgs {
     #[arg(value_enum)]
     shell: Shell,
@@ -167,6 +174,19 @@ enum RulesCommand {
     },
 }
 
+#[derive(Debug, Subcommand)]
+enum ConfigCommand {
+    Init(ConfigInitArgs),
+}
+
+#[derive(Debug, Args)]
+struct ConfigInitArgs {
+    #[arg(long)]
+    path: Option<PathBuf>,
+    #[arg(long)]
+    force: bool,
+}
+
 pub fn run() -> Result<()> {
     let cli = Cli::parse();
     match cli.command {
@@ -174,6 +194,7 @@ pub fn run() -> Result<()> {
         Command::Bundle(args) => bundle(args),
         Command::Inspect(args) => inspect(args),
         Command::Rules(args) => rules(args),
+        Command::Config(args) => config(args),
         Command::Completions(args) => completions(args),
     }
 }
@@ -465,6 +486,36 @@ fn rules(args: RulesArgs) -> Result<()> {
             print_summary(SummaryFormat::Text, &summary, &skipped)?;
         }
     }
+    Ok(())
+}
+
+fn config(args: ConfigArgs) -> Result<()> {
+    match args.command {
+        ConfigCommand::Init(args) => config_init(args),
+    }
+}
+
+fn config_init(args: ConfigInitArgs) -> Result<()> {
+    let path = args.path.unwrap_or_else(|| PathBuf::from(CONFIG_FILE_NAME));
+    if path.exists() && !args.force {
+        bail!(
+            "{} already exists; pass --force to overwrite",
+            path.display()
+        );
+    }
+
+    if let Some(parent) = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+    {
+        fs::create_dir_all(parent)
+            .with_context(|| format!("failed to create {}", parent.display()))?;
+    }
+
+    let config = starter_config_toml();
+    RuntimeConfig::from_toml(config, None).context("starter config is invalid")?;
+    fs::write(&path, config).with_context(|| format!("failed to write {}", path.display()))?;
+    println!("Wrote {}", path.display());
     Ok(())
 }
 

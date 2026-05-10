@@ -10,6 +10,25 @@ spelling mistakes and unsupported policy keys fail closed. `1.x` releases must
 continue reading version `1` configs; incompatible changes require a new config
 version.
 
+## Initialize
+
+Create a starter config in the current directory:
+
+```sh
+safe-bundle config init
+```
+
+Use an explicit path when bootstrapping another repository:
+
+```sh
+safe-bundle config init --path path/to/.safe-bundle.toml
+```
+
+The command refuses to overwrite an existing file unless `--force` is passed.
+The generated config is intentionally conservative: it sets `version = 1`,
+leaves allowlists empty, and includes commented examples for custom detectors
+and path overrides.
+
 ## Example
 
 ```toml
