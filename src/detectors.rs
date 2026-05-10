@@ -109,7 +109,7 @@ static DETECTORS: LazyLock<Vec<Detector>> = LazyLock::new(|| {
             RedactionClass::SecretPassword,
             Confidence::High,
             "secret-like key/value assignment",
-            r#"(?i)\b(password|passwd|pwd|token|api[_-]?key|secret|client_secret|access_token|refresh_token|session|cookie|webhook_secret)\b\s*[:=]\s*['"]?([^\s'",;{}\[\]]{4,})"#,
+            r#"(?i)\b([A-Za-z0-9_.-]*(?:password|passwd|pwd|token|api[_-]?key|secret|client_secret|access_token|refresh_token|session|cookie|webhook_secret))\b\s*[:=]\s*['"]?([^\s'",;{}\[\]]{4,})"#,
             2,
         )
         .with_context_key_group(1),
@@ -144,6 +144,87 @@ static DETECTORS: LazyLock<Vec<Detector>> = LazyLock::new(|| {
             "npm token",
             r"\bnpm_[A-Za-z0-9]{20,}\b",
             0,
+        ),
+        Detector::new(
+            "openai-api-key",
+            RedactionClass::SecretCloudCredential,
+            Confidence::High,
+            "OpenAI API key",
+            r"\bsk-(?:proj-[A-Za-z0-9_-]{20,}|svcacct-[A-Za-z0-9_-]{20,}|[A-Za-z0-9]{20,})\b",
+            0,
+        ),
+        Detector::new(
+            "anthropic-api-key",
+            RedactionClass::SecretCloudCredential,
+            Confidence::High,
+            "Anthropic API key",
+            r"\bsk-ant-[A-Za-z0-9_-]{10,}\b",
+            0,
+        ),
+        Detector::new(
+            "slack-token",
+            RedactionClass::SecretCloudCredential,
+            Confidence::High,
+            "Slack token",
+            r"\bxox[abprs]-[A-Za-z0-9-]{10,}\b",
+            0,
+        ),
+        Detector::new(
+            "discord-mfa-token",
+            RedactionClass::SecretCloudCredential,
+            Confidence::High,
+            "Discord MFA token",
+            r"\bmfa\.[A-Za-z0-9_-]{20,}\b",
+            0,
+        ),
+        Detector::new(
+            "discord-bot-token",
+            RedactionClass::SecretCloudCredential,
+            Confidence::High,
+            "Discord bot token",
+            r"\b[A-Za-z0-9_-]{24}\.[A-Za-z0-9_-]{6}\.[A-Za-z0-9_-]{27,}\b",
+            0,
+        ),
+        Detector::new(
+            "fly-api-token",
+            RedactionClass::SecretCloudCredential,
+            Confidence::High,
+            "Fly.io API token",
+            r"\bFlyV1\s+[A-Za-z0-9._~+/=-]{20,}",
+            0,
+        ),
+        Detector::new(
+            "resend-api-key",
+            RedactionClass::SecretCloudCredential,
+            Confidence::High,
+            "Resend API key",
+            r"\bre_[A-Za-z0-9]{20,}\b",
+            0,
+        ),
+        Detector::new(
+            "lemon-squeezy-key-value",
+            RedactionClass::SecretCloudCredential,
+            Confidence::High,
+            "Lemon Squeezy key/token assignment",
+            r#"(?i)\b(lemon_squeezy|lemonsqueezy|ls)_(?:api_)?(?:key|token|secret)\b\s*[:=]\s*['"]?([^\s'",;{}\[\]]{8,})"#,
+            2,
+        )
+        .with_context_key_group(1),
+        Detector::new(
+            "gcp-api-key",
+            RedactionClass::SecretCloudCredential,
+            Confidence::High,
+            "Google API key",
+            r"\bAIza[0-9A-Za-z_-]{35}\b",
+            0,
+        ),
+        Detector::new(
+            "azure-storage-account-key",
+            RedactionClass::SecretCloudCredential,
+            Confidence::High,
+            "Azure storage account key",
+            r"(?i)\bAccountKey=([A-Za-z0-9+/=]{20,})",
+            1,
         ),
         Detector::new(
             "windows-user-path",
@@ -258,5 +339,61 @@ mod tests {
         let infos = detector_infos();
         assert!(infos.iter().any(|info| info.id == "private-key-pem"));
         assert!(infos.iter().any(|info| info.id == "windows-user-path"));
+        assert!(infos.iter().any(|info| info.id == "openai-api-key"));
+        assert!(infos.iter().any(|info| info.id == "anthropic-api-key"));
+        assert!(infos.iter().any(|info| info.id == "resend-api-key"));
+    }
+
+    #[test]
+    fn finds_provider_specific_tokens() {
+        let input = [
+            format!("OPENAI_API_KEY={}", ["sk-", "proj-", "abcdefghijklmnopqrstuvwxyz123456"].concat()),
+            format!("ANTHROPIC_API_KEY={}", ["sk-", "ant-", "api03-", "abcdefghijklmnopqrstuvwxyz"].concat()),
+            format!(
+                "SLACK_BOT_TOKEN={}",
+                ["xoxb", "-", "123456789012-123456789012-abcdefghijklmnopqrstuvwx"].concat()
+            ),
+            format!("DISCORD_TOKEN={}", ["mfa", ".", "abcdefghijklmnopqrstuvwxyz123456"].concat()),
+            format!(
+                "DISCORD_BOT={}",
+                [
+                    "ABCDEFGHIJKLMNOPQRSTUVWX",
+                    ".",
+                    "abcdef",
+                    ".",
+                    "abcdefghijklmnopqrstuvwxyz1234567",
+                ]
+                .concat()
+            ),
+            format!("FLY_API_TOKEN={}", ["FlyV1", " ", "abcdefghijklmnopqrstuvwxyz123456"].concat()),
+            format!("RESEND_API_KEY={}", ["re", "_", "abcdefghijklmnopqrstuvwxyz123456"].concat()),
+            format!(
+                "LEMON_SQUEEZY_API_KEY={}",
+                ["ls", "_", "live", "_", "abcdefghijklmnopqrstuvwxyz"].concat()
+            ),
+            format!("GCP_API_KEY={}", ["AI", "za", "abcdefghijklmnopqrstuvwxyz123456789"].concat()),
+            "AZURE_STORAGE=DefaultEndpointsProtocol=https;AccountName=acct;AccountKey=abcdefghijklmnopqrstuvwxyz1234567890+/=;EndpointSuffix=core.windows.net".to_string(),
+        ]
+        .join("\n");
+        let found = detect(&input);
+        let ids = found
+            .iter()
+            .map(|candidate| candidate.detector_id)
+            .collect::<Vec<_>>();
+
+        for expected in [
+            "openai-api-key",
+            "anthropic-api-key",
+            "slack-token",
+            "discord-mfa-token",
+            "discord-bot-token",
+            "fly-api-token",
+            "resend-api-key",
+            "lemon-squeezy-key-value",
+            "gcp-api-key",
+            "azure-storage-account-key",
+        ] {
+            assert!(ids.contains(&expected), "missing detector {expected}");
+        }
     }
 }

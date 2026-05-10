@@ -28,7 +28,9 @@ Supported MVP detectors include:
 - PEM private keys.
 - Bearer tokens and JWT-like tokens.
 - Secret-like key/value pairs.
-- Common cloud credentials: AWS, GitHub, Stripe, npm.
+- Common cloud credentials: AWS, GitHub, Stripe, npm, OpenAI, Anthropic,
+  Slack, Discord, Fly.io, Resend, Lemon Squeezy, Google API keys, and Azure
+  storage account keys.
 - Database and service connection strings.
 - URL password segments.
 - Windows and Unix home directory usernames.
@@ -82,6 +84,14 @@ Structured format smoke:
 cargo run -- bundle fixtures/structured \
   --profile public-issue \
   --out target/structured.safe-bundle.zip
+```
+
+Provider-token smoke:
+
+```sh
+cargo run -- bundle fixtures/providers \
+  --profile public-issue \
+  --out target/providers.safe-bundle.zip
 ```
 
 Bundle layout:
