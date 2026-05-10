@@ -1,0 +1,4 @@
+2026-05-10T01:24:00Z ERROR request failed for user matt@example.com
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.payloadpayloadpayload.signaturevalue
+worker=10.1.2.3
+home=/home/matt/projects/app

@@ -1,0 +1,5 @@
+POST http://localhost:47200/api/support HTTP/1.1
+Cookie: session=abcdef1234567890
+Content-Type: application/json
+
+{"tenant":"customer-123","message":"synthetic fixture"}
