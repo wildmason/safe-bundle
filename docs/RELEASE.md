@@ -17,6 +17,9 @@
    ```
 
 4. Confirm GitHub Actions is green on `main`.
+5. Confirm repository rules allow maintainers or release automation to create
+   `refs/tags/v*` tags. If tag creation is restricted, the tag push will fail
+   before the release workflow can run.
 
 ## Tag
 
