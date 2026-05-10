@@ -414,6 +414,7 @@ fn validate_redacted_output(
 mod tests {
     use super::*;
     use crate::input::InputOptions;
+    use std::collections::BTreeSet;
     use std::io::Read;
 
     #[test]
@@ -492,6 +493,98 @@ mod tests {
         let verification = verify_bundle(&output).unwrap();
         assert_eq!(verification.verified_file_count, 1);
         assert_eq!(verification.verified_redaction_count, 1);
+    }
+
+    #[test]
+    fn bundle_schema_v1_layout_matches_golden_contract() {
+        let temp = tempfile::tempdir().unwrap();
+        let input = temp.path().join("logs");
+        fs::create_dir_all(&input).unwrap();
+        fs::write(
+            input.join("app.env"),
+            "API_KEY=ghp_abcdefghijklmnopqrstuvwxyz\n",
+        )
+        .unwrap();
+
+        let output = temp.path().join("support.safe-bundle.zip");
+        build_bundle(
+            &[input],
+            &output,
+            BundleOptions {
+                profile: Profile::PublicIssue,
+                placeholder_style: PlaceholderStyle::Bracket,
+                input_options: InputOptions::default(),
+                runtime_config: RuntimeConfig::empty(),
+            },
+        )
+        .unwrap();
+
+        let mut archive = zip::ZipArchive::new(File::open(&output).unwrap()).unwrap();
+        let names = archive
+            .file_names()
+            .map(str::to_string)
+            .collect::<BTreeSet<_>>();
+        let expected_names = BTreeSet::from([
+            "README.txt".to_string(),
+            "checksums.sha256".to_string(),
+            "files/logs/app.env".to_string(),
+            "manifest.json".to_string(),
+            "redactions.jsonl".to_string(),
+            "skipped.jsonl".to_string(),
+            "summary.md".to_string(),
+        ]);
+        assert_eq!(names, expected_names);
+
+        let mut manifest_json = String::new();
+        archive
+            .by_name("manifest.json")
+            .unwrap()
+            .read_to_string(&mut manifest_json)
+            .unwrap();
+        let manifest: serde_json::Value = serde_json::from_str(&manifest_json).unwrap();
+        let manifest_fields = manifest
+            .as_object()
+            .unwrap()
+            .keys()
+            .cloned()
+            .collect::<BTreeSet<_>>();
+        let expected_manifest_fields = BTreeSet::from([
+            "bundle_hash".to_string(),
+            "classes".to_string(),
+            "created_at".to_string(),
+            "file_count".to_string(),
+            "input_roots".to_string(),
+            "policy".to_string(),
+            "profile".to_string(),
+            "redacted_file_count".to_string(),
+            "redacted_output_hashes".to_string(),
+            "redaction_count".to_string(),
+            "schema_version".to_string(),
+            "skipped_file_count".to_string(),
+            "tool_name".to_string(),
+            "tool_version".to_string(),
+        ]);
+        assert_eq!(manifest_fields, expected_manifest_fields);
+        assert_eq!(manifest["schema_version"], "1");
+
+        let mut checksums = String::new();
+        archive
+            .by_name("checksums.sha256")
+            .unwrap()
+            .read_to_string(&mut checksums)
+            .unwrap();
+        assert!(checksums.ends_with("  files/logs/app.env\n"));
+
+        let mut redactions = String::new();
+        archive
+            .by_name("redactions.jsonl")
+            .unwrap()
+            .read_to_string(&mut redactions)
+            .unwrap();
+        let redaction_events = parse_redactions_jsonl(&redactions).unwrap();
+        assert_eq!(redaction_events.len(), 1);
+
+        verify_bundle(&output).unwrap();
     }
 
     #[test]

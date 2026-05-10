@@ -5,6 +5,8 @@ This roadmap defines the release ladder from the `0.1.0` developer preview to
 
 ## 0.2 - Accuracy Harness
 
+Status: shipped on `main`.
+
 Goal: make detector behavior regression-testable before expanding the CLI.
 
 - Maintain a golden corpus under `fixtures/golden/`.
@@ -16,6 +18,8 @@ Goal: make detector behavior regression-testable before expanding the CLI.
 
 ## 0.3 - Repository Policy
 
+Status: shipped on `main`.
+
 Goal: let users tune behavior per repository without forking the tool.
 
 - Add `.safe-bundle.toml` discovery.
@@ -25,6 +29,8 @@ Goal: let users tune behavior per repository without forking the tool.
 - Add documented suppression patterns for formats where suppression is safe.
 
 ## 0.4 - Bundle Contract
+
+Status: shipped on `main`.
 
 Goal: make `.safe-bundle.zip` a documented, stable interchange format.
 

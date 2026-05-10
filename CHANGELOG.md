@@ -18,6 +18,8 @@ should be called out explicitly.
   first-match per-path profile overrides.
 - `inspect --verify` for bundle schema, checksum, redaction JSONL, and logical
   bundle-hash validation.
+- Logical golden compatibility test coverage for the schema-v1 bundle layout
+  and manifest contract.
 - Provider detector coverage for AWS secret/session tokens, escaped PEM private
   keys in JSON strings, Stripe webhook secrets, SendGrid, Datadog, Netlify,
   Vercel, Postmark, Sentry, Supabase service-role keys, and Twilio auth tokens.

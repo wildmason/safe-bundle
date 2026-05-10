@@ -14,6 +14,17 @@ files/
 
 The current schema version is `1`.
 
+## Compatibility
+
+`safe-bundle` treats schema `1` as the supported bundle format for the `1.x`
+CLI line. Patch and minor releases may add optional manifest fields or public
+redaction fields, but they must keep existing schema `1` fields and top-level
+entries readable by newer `1.x` releases.
+
+Any incompatible bundle layout change must use a new `schema_version`. Current
+releases reject unknown schema versions during `inspect --verify` instead of
+silently accepting a bundle they cannot validate.
+
 ## `manifest.json`
 
 The manifest is the machine-readable bundle header.
