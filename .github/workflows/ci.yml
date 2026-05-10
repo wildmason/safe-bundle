@@ -35,6 +35,23 @@ jobs:
         shell: pwsh
         run: ./scripts/dependency-policy.ps1
 
+  package:
+    name: Package dry run
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Check package contents
+        run: cargo package --locked
+
+      - name: Check crates.io publish preflight
+        run: cargo publish --dry-run --locked
+
   test:
     name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}

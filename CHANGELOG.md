@@ -35,6 +35,7 @@ should be called out explicitly.
 - Offline sidecar mode and smoke coverage for package-manager recipe
   generation.
 - Offline checksum-only asset directory mode for release verification.
+- CI package and crates.io publish dry-run coverage.
 - Install guide covering release archives, source installs, completions,
   repository policy setup, and package-manager status.
 
