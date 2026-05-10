@@ -62,6 +62,12 @@ archive and binary archives. Verify them with:
 gh attestation verify <artifact> -R wildmason/safe-bundle
 ```
 
+Or verify all assets for a tag from a checkout:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-release.ps1 -Tag v1.0.0
+```
+
 Detached GPG or cosign signatures are not required unless downstream packaging
 or distribution channels need them.
 
@@ -71,8 +77,10 @@ Crates.io publication is intentionally manual until the project has a dedicated
 publish token and final ownership metadata:
 
 ```sh
+git checkout v1.0.0
 cargo publish --dry-run --locked
 cargo publish --locked
 ```
 
-Do not publish if the GitHub Release workflow failed.
+Publish from the release tag so the crate contents match the GitHub Release
+crate archive. Do not publish if the GitHub Release workflow failed.

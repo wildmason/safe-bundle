@@ -48,6 +48,12 @@ Download release assets from the
 [GitHub Releases](https://github.com/wildmason/safe-bundle/releases) page and
 verify the matching `.sha256` file before using a binary.
 
+From a checkout, install the matching GitHub Release binary for your platform:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Tag v1.0.0
+```
+
 From a local checkout:
 
 ```sh
@@ -236,6 +242,7 @@ Additional project docs:
 - [Workflows](docs/WORKFLOWS.md)
 - [Guarantees and limits](docs/LIMITS.md)
 - [Detector contribution guide](docs/DETECTOR_GUIDE.md)
+- [Distribution](docs/DISTRIBUTION.md)
 - [Release candidate checklist](docs/RELEASE_CANDIDATE.md)
 - [Roadmap to 1.0](docs/ROADMAP.md)
 - [Release process](docs/RELEASE.md)

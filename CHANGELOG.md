@@ -8,6 +8,15 @@ should be called out explicitly.
 
 ## Unreleased
 
+### Added
+
+- PowerShell installer for GitHub Release binary archives.
+- Release verification script for downloaded checksums and GitHub artifact
+  attestations.
+- Distribution documentation covering GitHub Releases, crates.io, and
+  verification expectations.
+- CI smoke coverage for release helper script syntax.
+
 ## 1.0.0 - 2026-05-10
 
 Stable local safety contract release.

@@ -34,6 +34,13 @@ if ($rulesText -notmatch 'private-key-pem' -or $rulesText -notmatch 'github-toke
 }
 Write-Host '::endgroup::'
 
+Write-Host '::group::release helper script syntax'
+foreach ($scriptName in @('install.ps1', 'verify-release.ps1')) {
+    $scriptPath = Join-Path $repoRoot "scripts/$scriptName"
+    $null = [scriptblock]::Create((Get-Content -Raw -LiteralPath $scriptPath))
+}
+Write-Host '::endgroup::'
+
 Write-Host '::group::scrub files'
 cargo run --quiet -- scrub fixtures/synthetic --profile public-issue --out $scrubOut --events $scrubEvents --summary text
 $scrubEventsText = Get-Content -Raw -LiteralPath $scrubEvents
