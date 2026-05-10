@@ -167,6 +167,8 @@ enum RulesCommand {
         path: PathBuf,
         #[arg(long, value_enum, default_value_t = Profile::Support)]
         profile: Profile,
+        #[arg(long, value_enum, default_value_t = SummaryFormat::Text)]
+        format: SummaryFormat,
         #[arg(long)]
         config: Option<PathBuf>,
         #[arg(long)]
@@ -470,6 +472,7 @@ fn rules(args: RulesArgs) -> Result<()> {
         RulesCommand::Test {
             path,
             profile,
+            format,
             config,
             no_config,
         } => {
@@ -503,7 +506,7 @@ fn rules(args: RulesArgs) -> Result<()> {
                 summary.add_document(&document);
             }
             summary.skipped_files = skipped.len();
-            print_summary(SummaryFormat::Text, &summary, &skipped)?;
+            print_summary(format, &summary, &skipped)?;
         }
     }
     Ok(())

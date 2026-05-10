@@ -24,6 +24,8 @@ should be called out explicitly.
   policy before running a scrub.
 - `config inspect` command for summarizing discovered or explicit repository
   policy counts.
+- `rules test --format <text|json|markdown>` for machine-readable detector
+  fixture summaries.
 - Provider detector coverage for GitLab, DigitalOcean, Hugging Face, Linear,
   Notion, Cloudflare, Atlassian/Jira, and Shopify tokens.
 - Package-manager recipe generation script and docs for Homebrew taps and Scoop

@@ -106,6 +106,12 @@ fn inspect_and_rules_cli_contracts_are_stable_for_1_0() {
     let rules_help = subcommand_help("rules");
     assert!(rules_help.contains("list"));
     assert!(rules_help.contains("test"));
+
+    let rules_test_help = nested_subcommand_help("rules", "test");
+    assert!(rules_test_help.contains("--profile"));
+    assert!(rules_test_help.contains("--format"));
+    assert!(rules_test_help.contains("--config"));
+    assert!(rules_test_help.contains("--no-config"));
 }
 
 fn subcommand_help(name: &str) -> String {

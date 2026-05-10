@@ -93,6 +93,13 @@ provider credentials.
 
 ## Local Gate
 
+Before changing a detector, inspect the relevant fixture with machine-readable
+output:
+
+```sh
+safe-bundle rules test fixtures/providers --profile public-issue --format json
+```
+
 Run:
 
 ```sh

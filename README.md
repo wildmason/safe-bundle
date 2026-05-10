@@ -14,7 +14,8 @@ service.
 - `scrub` redacts stdin or selected files.
 - `bundle` writes a `.zip` support bundle containing only redacted files.
 - `inspect` validates and summarizes a generated bundle.
-- `rules list` prints the built-in detector catalog.
+- `rules list` prints the built-in detector catalog, and `rules test` reports
+  fixture redaction summaries as text, JSON, or Markdown.
 - Valid JSON, JSONL, TOML, YAML, and env inputs are checked after redaction so
   structure-breaking replacements fail instead of producing broken artifacts.
 - Stable placeholders preserve debugging shape:

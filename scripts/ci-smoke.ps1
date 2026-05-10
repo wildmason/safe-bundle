@@ -37,6 +37,10 @@ $rulesText = $rules -join "`n"
 if ($rulesText -notmatch 'private-key-pem' -or $rulesText -notmatch 'github-token') {
     throw 'rules list did not include expected detectors'
 }
+$rulesTest = cargo run --quiet -- rules test fixtures/providers --profile public-issue --format json | ConvertFrom-Json
+if ($rulesTest.scanned_files -ne 1 -or $rulesTest.redaction_count -ne 27) {
+    throw 'rules test --format json did not report expected provider fixture counts'
+}
 Write-Host '::endgroup::'
 
 Write-Host '::group::release helper script syntax'
