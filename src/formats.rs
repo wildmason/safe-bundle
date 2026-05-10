@@ -182,4 +182,43 @@ contact: "matt@example.com"
             StructureCheck::SourceInvalid
         );
     }
+
+    #[test]
+    fn generated_structured_fixtures_stay_parseable_after_redaction() {
+        for suffix in ["", "_EXTRA_CONTEXT", "1234567890"] {
+            let token = format!("ghp_abcdefghijklmnopqrstuvwxyz{suffix}");
+            let cases = [
+                (
+                    "json",
+                    format!(r#"{{"token":"{token}","ip":"10.1.2.3","ok":true}}"#),
+                ),
+                (
+                    "jsonl",
+                    format!("{{\"token\":\"{token}\"}}\n{{\"ip\":\"10.1.2.3\"}}\n"),
+                ),
+                (
+                    "toml",
+                    format!("token = \"{token}\"\nendpoint = \"http://api.internal/status\"\n"),
+                ),
+                (
+                    "yaml",
+                    format!("token: \"{token}\"\ncontact: \"matt@example.com\"\n"),
+                ),
+                (
+                    "env",
+                    format!("TOKEN={token}\nDATABASE_URL=postgres://app:secretpass@db/app\n"),
+                ),
+            ];
+
+            for (format, input) in cases {
+                let redacted = redact(format, &input);
+                assert_eq!(
+                    validate_structure_preserved(format, &input, &redacted).unwrap(),
+                    StructureCheck::Preserved,
+                    "{format} fixture was not preserved"
+                );
+                assert!(!redacted.contains(&token));
+            }
+        }
+    }
 }

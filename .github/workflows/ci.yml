@@ -6,6 +6,35 @@ on:
   pull_request:
 
 jobs:
+  msrv:
+    name: Rust 1.85 MSRV
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Rust 1.85
+        uses: dtolnay/rust-toolchain@1.85.0
+
+      - name: Check MSRV build
+        run: cargo check --locked
+
+  dependency-policy:
+    name: Dependency policy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run dependency policy checks
+        shell: pwsh
+        run: ./scripts/dependency-policy.ps1
+
   test:
     name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}

@@ -53,6 +53,8 @@ Goal: make safe-bundle easy to run in CI and local hooks.
 
 ## 0.6 - Hardening
 
+Status: shipped on `main`.
+
 Goal: reduce supply-chain, parser, and platform risk.
 
 - Add MSRV CI for Rust `1.85`.

@@ -25,6 +25,10 @@ should be called out explicitly.
 - Composite GitHub Action wrapper in `action.yml`.
 - `docs/AUTOMATION.md` with GitHub Actions, pre-commit, and git hook
   examples.
+- MSRV CI for Rust 1.85 and a local dependency policy script.
+- Release workflow smoke tests for packaged binary archives.
+- Property-style hardening tests for redaction ordering, archive path
+  sanitization, and structured format preservation.
 - Provider detector coverage for AWS secret/session tokens, escaped PEM private
   keys in JSON strings, Stripe webhook secrets, SendGrid, Datadog, Netlify,
   Vercel, Postmark, Sentry, Supabase service-role keys, and Twilio auth tokens.
@@ -36,6 +40,8 @@ should be called out explicitly.
 
 - Generic secret-like key/value detection now avoids common benign config words
   such as `required`, `false`, `active`, and count/policy toggles.
+- Archive path sanitization now rejects drive-letter path components even on
+  non-Windows platforms.
 - Updated direct dependencies: `sha2` 0.11, `toml` 1.1, and `zip` 7.2.
 
 ## 0.1.0 - 2026-05-10

@@ -13,6 +13,8 @@
    cargo test --locked
    cargo clippy --all-targets --locked -- -D warnings
    powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci-smoke.ps1
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dependency-policy.ps1
+   cargo +1.85.0 check --locked
    cargo package --locked
    ```
 
@@ -44,6 +46,18 @@ The release workflow uploads:
 - `safe-bundle-<version>-x86_64-pc-windows-msvc.zip`
 - `.sha256` sidecar files for every archive.
 - The packaged crate archive from `cargo package`.
+
+Each binary archive is extracted and smoke-tested in the release workflow before
+it is uploaded.
+
+## Integrity and Provenance
+
+For `0.x` releases, every uploaded archive must have a SHA-256 sidecar file and
+the release workflow must smoke-test the packaged binary before upload.
+
+Before the `1.0.0` release candidate, add GitHub artifact attestations for the
+crate archive and binary archives. Detached GPG or cosign signatures are not
+required unless downstream packaging or distribution channels need them.
 
 ## Crates.io
 

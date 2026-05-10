@@ -202,6 +202,13 @@ pub fn sanitize_archive_path(path: impl AsRef<Path>) -> Result<String> {
             Component::Normal(part) => {
                 let part = part.to_string_lossy();
                 if !part.is_empty() {
+                    let bytes = part.as_bytes();
+                    if bytes.len() >= 2 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':' {
+                        bail!(
+                            "unsafe archive path component in {}",
+                            path.as_ref().display()
+                        );
+                    }
                     parts.push(part.replace(['\\', '/'], "_"));
                 }
             }
@@ -273,10 +280,10 @@ fn sniff_format(path: &Path, content: &str) -> &'static str {
 }
 
 fn matches_globs(path: &Path, include: &Option<GlobSet>, exclude: &Option<GlobSet>) -> bool {
-    if let Some(exclude) = exclude
-        && exclude.is_match(path)
-    {
-        return false;
+    if let Some(exclude) = exclude {
+        if exclude.is_match(path) {
+            return false;
+        }
     }
 
     match include {
@@ -339,6 +346,34 @@ mod tests {
             sanitize_archive_path("logs/app.txt").unwrap(),
             "logs/app.txt"
         );
+    }
+
+    #[test]
+    fn archive_path_sanitization_rejects_unsafe_components() {
+        for unsafe_path in [
+            PathBuf::from(".."),
+            PathBuf::from("../secret.txt"),
+            PathBuf::from("/absolute/secret.txt"),
+            PathBuf::from(r"C:\Users\Matt\secret.txt"),
+        ] {
+            assert!(
+                sanitize_archive_path(&unsafe_path).is_err(),
+                "accepted unsafe archive path {}",
+                unsafe_path.display()
+            );
+        }
+
+        for safe_path in [
+            PathBuf::from("logs").join("app.txt"),
+            PathBuf::from("nested")
+                .join(".well-known")
+                .join("trace.log"),
+        ] {
+            let sanitized = sanitize_archive_path(&safe_path).unwrap();
+            assert!(!sanitized.contains(".."));
+            assert!(!sanitized.starts_with('/'));
+            assert!(!sanitized.starts_with('\\'));
+        }
     }
 
     #[test]

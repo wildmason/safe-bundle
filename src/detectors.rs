@@ -526,10 +526,10 @@ fn detect_with<'a>(
             }
 
             let mut context = BTreeMap::new();
-            if let Some(group) = detector.context_key_group
-                && let Some(key) = captures.get(group)
-            {
-                context.insert("key".to_string(), key.as_str().to_string());
+            if let Some(group) = detector.context_key_group {
+                if let Some(key) = captures.get(group) {
+                    context.insert("key".to_string(), key.as_str().to_string());
+                }
             }
 
             if detector.info.id == "secret-key-value"

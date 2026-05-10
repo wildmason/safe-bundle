@@ -39,6 +39,10 @@ jobs:
         shell: pwsh
         run: ./scripts/ci-smoke.ps1
 
+      - name: Run dependency policy checks
+        shell: pwsh
+        run: ./scripts/dependency-policy.ps1
+
       - name: Verify package
         run: cargo package --locked
 
@@ -157,6 +161,40 @@ jobs:
 
           $hash = (Get-FileHash -LiteralPath $asset -Algorithm SHA256).Hash.ToLowerInvariant()
           "$hash  $asset" | Set-Content -NoNewline -LiteralPath "$asset.sha256"
+
+      - name: Smoke packaged archive
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $target = '${{ matrix.target }}'
+          $archiveExt = '${{ matrix.archive_ext }}'
+          $asset = "safe-bundle-$env:GITHUB_REF_NAME-$target$archiveExt"
+          $install = Join-Path 'target/install-smoke' $target
+          New-Item -ItemType Directory -Force -Path $install | Out-Null
+
+          if ($archiveExt -eq '.zip') {
+              Expand-Archive -LiteralPath $asset -DestinationPath $install -Force
+          } else {
+              tar -xzf $asset -C $install
+          }
+
+          $binary = Join-Path $install '${{ matrix.binary_name }}'
+          & $binary --version | Write-Host
+          $redacted = 'API_KEY=ghp_abcdefghijklmnopqrstuvwxyz' | & $binary scrub --stdin --profile public-issue
+          if ($LASTEXITCODE -ne 0) {
+              throw 'packaged binary scrub smoke failed'
+          }
+          if ($redacted -match 'ghp_abcdefghijklmnopqrstuvwxyz') {
+              throw 'packaged binary scrub leaked the fixture token'
+          }
+
+      - name: Upload binary and checksum
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $target = '${{ matrix.target }}'
+          $archiveExt = '${{ matrix.archive_ext }}'
+          $asset = "safe-bundle-$env:GITHUB_REF_NAME-$target$archiveExt"
           gh release upload $env:GITHUB_REF_NAME $asset "$asset.sha256" --repo $env:GITHUB_REPOSITORY --clobber
 
   publish-release:

@@ -22,6 +22,7 @@ include = [
     "/docs/**",
     "/fixtures/**",
     "/scripts/ci-smoke.ps1",
+    "/scripts/dependency-policy.ps1",
     "/src/**",
     "/tests/**",
 ]

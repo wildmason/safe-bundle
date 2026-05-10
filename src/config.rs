@@ -88,10 +88,10 @@ impl RuntimeConfig {
     pub fn from_toml(raw: &str, loaded_from: Option<PathBuf>) -> Result<Self> {
         let config: FileConfig =
             toml::from_str(raw).context("failed to parse safe-bundle config")?;
-        if let Some(version) = config.version
-            && version != 1
-        {
-            bail!("unsupported safe-bundle config version {version}");
+        if let Some(version) = config.version {
+            if version != 1 {
+                bail!("unsupported safe-bundle config version {version}");
+            }
         }
 
         let custom = validate_custom_detectors(config.custom_detectors)?;

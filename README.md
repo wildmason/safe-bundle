@@ -202,6 +202,8 @@ cargo fmt
 cargo test
 cargo clippy --all-targets -- -D warnings
 pwsh ./scripts/ci-smoke.ps1
+pwsh ./scripts/dependency-policy.ps1
+cargo +1.85.0 check --locked
 ```
 
 On Windows without PowerShell Core installed, the smoke script also works with:

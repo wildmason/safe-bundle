@@ -368,4 +368,30 @@ mod tests {
         assert_eq!(event.source_region.end_line, 2);
         assert!(event.source_region.end_column > event.source_region.start_column);
     }
+
+    #[test]
+    fn dense_redactions_keep_events_ordered_and_non_overlapping() {
+        let mut redactor =
+            Redactor::new(Policy::new(Profile::PublicIssue, PlaceholderStyle::Bracket));
+        let mut input = String::new();
+        for index in 0..32 {
+            input.push_str(&format!(
+                "TOKEN_{index}=ghp_abcdefghijklmnopqrstuvwxyz{index:02}\n"
+            ));
+            input.push_str(&format!("HOST_{index}=10.1.2.{index}\n"));
+        }
+
+        let document = redactor.redact_text(&input, "dense.env", "env");
+        assert!(!document.events.is_empty());
+        assert!(!document.redacted.contains("ghp_abcdefghijklmnopqrstuvwxyz"));
+
+        for pair in document.events.windows(2) {
+            assert!(
+                pair[0].original_span.end <= pair[1].original_span.start,
+                "overlapping redaction events: {:?} then {:?}",
+                pair[0].original_span,
+                pair[1].original_span
+            );
+        }
+    }
 }
