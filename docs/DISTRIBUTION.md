@@ -25,7 +25,7 @@ Supported binary archives:
 Use the PowerShell installer from a checkout:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Tag v1.0.0
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Tag v1.1.0
 ```
 
 By default, the installer chooses the archive for the current platform,
@@ -40,7 +40,7 @@ an existing binary.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 `
-  -Tag v1.0.0 `
+  -Tag v1.1.0 `
   -InstallDir .\target\install-bin `
   -Force
 ```
@@ -83,7 +83,7 @@ as `bucket/safe-bundle.json`.
 Maintainers can verify all published release assets with:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-release.ps1 -Tag v1.0.0
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-release.ps1 -Tag v1.1.0
 ```
 
 The verifier downloads every release asset, checks every `.sha256` sidecar, and
@@ -102,25 +102,25 @@ an asset directory and skip attestations:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-release.ps1 `
-  -AssetDir .\target\release-check\v1.0.0 `
+  -AssetDir .\target\release-check\v1.1.0 `
   -SkipAttestations
 ```
 
 ## Crates.io
 
-The `1.0.0` crate was published from the `v1.0.0` tag. Future release crates
-should also be published from their release tag, not from a later post-release
-`main` checkout:
+Release crates should be published from their release tag, not from a later
+post-release `main` checkout:
 
 ```powershell
-git checkout v1.0.0
+git checkout v1.1.0
 cargo publish --dry-run --locked
 cargo publish --locked
 ```
 
 Publishing requires a crates.io account, an API token available through
 `cargo login <token>` or `CARGO_REGISTRY_TOKEN`, owner permission for the
-crate, and a version number that has not already been accepted by crates.io.
+crate, update-publish permission for already-created crates, and a version
+number that has not already been accepted by crates.io.
 
 Once crates.io accepts a version, that version is immutable. A bad release can
 be yanked, but the same version number cannot be reused with different contents.

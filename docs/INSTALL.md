@@ -9,7 +9,7 @@ From a repository checkout, install the matching release binary for the current
 platform:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Tag v1.0.0
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Tag v1.1.0
 ```
 
 The installer detects the current operating system and CPU, downloads the
@@ -23,7 +23,7 @@ Use `-InstallDir` to choose a different directory:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 `
-  -Tag v1.0.0 `
+  -Tag v1.1.0 `
   -InstallDir .\target\install-bin `
   -Force
 ```
@@ -44,14 +44,14 @@ Download the matching `.sha256` sidecar before extracting the binary. On
 Windows, verify the archive hash with:
 
 ```powershell
-Get-FileHash .\safe-bundle-v1.0.0-x86_64-pc-windows-msvc.zip -Algorithm SHA256
-Get-Content .\safe-bundle-v1.0.0-x86_64-pc-windows-msvc.zip.sha256
+Get-FileHash .\safe-bundle-v1.1.0-x86_64-pc-windows-msvc.zip -Algorithm SHA256
+Get-Content .\safe-bundle-v1.1.0-x86_64-pc-windows-msvc.zip.sha256
 ```
 
 On macOS or Linux, verify with:
 
 ```sh
-sha256sum -c safe-bundle-v1.0.0-x86_64-unknown-linux-gnu.tar.gz.sha256
+sha256sum -c safe-bundle-v1.1.0-x86_64-unknown-linux-gnu.tar.gz.sha256
 ```
 
 Then extract the archive, move `safe-bundle` or `safe-bundle.exe` into a

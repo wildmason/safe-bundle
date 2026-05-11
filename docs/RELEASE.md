@@ -28,8 +28,8 @@
 Use an annotated version tag:
 
 ```sh
-git tag -a v1.0.0 -m "safe-bundle v1.0.0"
-git push origin v1.0.0
+git tag -a v1.1.0 -m "safe-bundle v1.1.0"
+git push origin v1.1.0
 ```
 
 The `Release` workflow verifies the tag, creates a draft GitHub Release, builds
@@ -40,10 +40,10 @@ jobs pass.
 
 The release workflow uploads:
 
-- `safe-bundle-<version>-x86_64-unknown-linux-gnu.tar.gz`
-- `safe-bundle-<version>-x86_64-apple-darwin.tar.gz`
-- `safe-bundle-<version>-aarch64-apple-darwin.tar.gz`
-- `safe-bundle-<version>-x86_64-pc-windows-msvc.zip`
+- `safe-bundle-v<version>-x86_64-unknown-linux-gnu.tar.gz`
+- `safe-bundle-v<version>-x86_64-apple-darwin.tar.gz`
+- `safe-bundle-v<version>-aarch64-apple-darwin.tar.gz`
+- `safe-bundle-v<version>-x86_64-pc-windows-msvc.zip`
 - `.sha256` sidecar files for every archive.
 - The packaged crate archive from `cargo package`.
 
@@ -65,14 +65,14 @@ gh attestation verify <artifact> -R wildmason/safe-bundle
 Or verify all assets for a tag from a checkout:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-release.ps1 -Tag v1.0.0
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-release.ps1 -Tag v1.1.0
 ```
 
 For checksum-only verification of an already downloaded asset directory:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-release.ps1 `
-  -AssetDir .\target\release-check\v1.0.0 `
+  -AssetDir .\target\release-check\v1.1.0 `
   -SkipAttestations
 ```
 
@@ -81,17 +81,19 @@ or distribution channels need them.
 
 ## Crates.io
 
-Crates.io publication is intentionally manual until the project has a dedicated
-publish token and final ownership metadata:
+Crates.io publication is a manual maintainer step after the GitHub Release
+workflow succeeds:
 
 ```sh
-git checkout v1.0.0
+git checkout v1.1.0
 cargo publish --dry-run --locked
 cargo publish --locked
 ```
 
 Publish from the release tag so the crate contents match the GitHub Release
-crate archive. Do not publish if the GitHub Release workflow failed.
+crate archive. Do not publish if the GitHub Release workflow failed. The
+crates.io token must have permission to publish updates for the existing
+`safe-bundle` crate.
 
 ## Package Managers
 
@@ -99,7 +101,7 @@ After the GitHub Release has been verified, generate package-manager recipe
 drafts from the release sidecars:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\generate-packaging-recipes.ps1 -Tag v1.0.0
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\generate-packaging-recipes.ps1 -Tag v1.1.0
 ```
 
 Review the generated Homebrew formula and Scoop manifest before copying them

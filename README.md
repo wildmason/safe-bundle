@@ -72,7 +72,7 @@ verify the matching `.sha256` file before using a binary.
 From a checkout, install the matching GitHub Release binary for your platform:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Tag v1.0.0
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install.ps1 -Tag v1.1.0
 ```
 
 See the [install guide](docs/INSTALL.md) for manual archive verification,
@@ -290,7 +290,7 @@ Additional project docs:
 - [Distribution](docs/DISTRIBUTION.md)
 - [Package manager recipes](docs/PACKAGING.md)
 - [Release candidate checklist](docs/RELEASE_CANDIDATE.md)
-- [Roadmap to 1.0](docs/ROADMAP.md)
+- [Roadmap](docs/ROADMAP.md)
 - [Release process](docs/RELEASE.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)

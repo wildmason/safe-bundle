@@ -16,7 +16,7 @@ Run from a checkout after the GitHub Release workflow has published assets and
 SHA-256 sidecars:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\generate-packaging-recipes.ps1 -Tag v1.0.0
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\generate-packaging-recipes.ps1 -Tag v1.1.0
 ```
 
 The script downloads checksum sidecars for the release tag and writes draft
@@ -35,9 +35,9 @@ contains the release `.sha256` sidecars:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\generate-packaging-recipes.ps1 `
-  -Tag v1.0.0 `
+  -Tag v1.1.0 `
   -SidecarDir .\target\release-sidecars `
-  -OutDir .\target\packaging\v1.0.0
+  -OutDir .\target\packaging\v1.1.0
 ```
 
 ## Homebrew

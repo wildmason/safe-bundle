@@ -1,99 +1,62 @@
-# Roadmap to 1.0
+# Roadmap
 
-This roadmap defines the release ladder from the `0.1.0` developer preview to
-`1.0.0`.
+`safe-bundle` reached its stable local safety contract in `1.0.0`. The roadmap
+now tracks shipped milestones and the next practical release lanes.
 
-## 0.2 - Accuracy Harness
+## Shipped Milestones
 
-Status: shipped on `main`.
+### 1.0.0 - Stable Local Safety Contract
 
-Goal: make detector behavior regression-testable before expanding the CLI.
-
-- Maintain a golden corpus under `fixtures/golden/`.
-- Require every new detector to add at least one positive fixture and, where
-  plausible, one false-positive fixture.
-- Keep public event JSON free of raw fixture secrets.
-- Keep structured redacted outputs parseable for supported structured formats.
-- Expand provider coverage for common developer support bundles.
-
-## 0.3 - Repository Policy
-
-Status: shipped on `main`.
-
-Goal: let users tune behavior per repository without forking the tool.
-
-- Add `.safe-bundle.toml` discovery.
-- Support custom detectors.
-- Support allowlist rules for known-safe values.
-- Support per-path profile overrides.
-- Add documented suppression patterns for formats where suppression is safe.
-
-## 0.4 - Bundle Contract
-
-Status: shipped on `main`.
-
-Goal: make `.safe-bundle.zip` a documented, stable interchange format.
-
-- Document `manifest.json`, `redactions.jsonl`, `skipped.jsonl`, and
-  `checksums.sha256`.
-- Add golden archive compatibility tests.
-- Add `inspect --verify` for checksum and schema validation.
-- Define schema-version compatibility rules.
-
-## 0.5 - Automation Integrations
-
-Status: shipped on `main`.
-
-Goal: make safe-bundle easy to run in CI and local hooks.
-
-- Add `scrub --check` as a CI-friendly alias for dry-run failure behavior.
-- Add SARIF output for code-scanning workflows.
-- Add a GitHub Action wrapper.
-- Add pre-commit and pre-push examples.
-
-## 0.6 - Hardening
-
-Status: shipped on `main`.
-
-Goal: reduce supply-chain, parser, and platform risk.
-
-- Add MSRV CI for Rust `1.85`.
-- Add dependency policy checks.
-- Add property/fuzz tests for detector overlap, archive paths, and structure
-  preservation.
-- Add release-asset install smoke tests for Linux, macOS, and Windows.
-- Decide whether release assets need signatures or provenance attestations.
-
-## 0.7 - Documentation and Adoption
-
-Status: shipped on `main`.
-
-Goal: make the tool understandable by someone who did not build it.
-
-- Add "before opening a public issue" workflow documentation.
-- Add examples for public GitHub issues, support handoff, LLM prompt cleanup,
-  and internal incident triage.
-- Add a detector contribution guide with fixture requirements.
-- Document clear non-goals and residual risk in user-facing language.
-
-## 0.9 - Release Candidate
-
-Status: shipped on `main`.
-
-Goal: freeze the CLI and bundle schema before `1.0.0`.
-
-- No known high-severity false negatives in the golden corpus.
-- No raw fixture secrets in public outputs.
-- Stable config format.
-- Stable bundle schema.
-- Cross-platform CI green.
-- Release artifact install smoke green.
-- Crates.io publication process decided and tested.
-
-## 1.0 - Stable Local Safety Contract
-
-Status: shipped on `main`.
+Status: shipped on 2026-05-10.
 
 `1.0.0` means users can install `safe-bundle`, configure it in a repository,
-run it locally or in CI, trust the public bundle format, and understand exactly
-what the tool does and does not guarantee.
+run it locally or in CI, trust the public bundle format, and understand the
+tool's guarantees and limits.
+
+- Golden detector corpus and structured-output validity coverage.
+- Repository policy loading from `.safe-bundle.toml`.
+- Documented schema-v1 `.safe-bundle.zip` bundle contract.
+- `inspect --verify`, `scrub --check`, SARIF output, and GitHub Action
+  automation.
+- MSRV, dependency policy, release-asset smoke tests, and GitHub artifact
+  attestations.
+- User-facing workflow, contribution, support, and release-candidate docs.
+
+### 1.1.0 - Distribution and Policy UX
+
+Status: shipped on 2026-05-11.
+
+`1.1.0` makes the stable CLI easier to install, verify, configure, and package
+without changing the public bundle schema.
+
+- GitHub Release installer and release verification scripts.
+- Homebrew and Scoop recipe generation backed by release checksum sidecars.
+- Published package-manager recipes in Wildmason-owned tap and bucket
+  repositories.
+- Install, distribution, packaging, and release-process documentation.
+- Shell completion generation for Bash, Elvish, Fish, PowerShell, and Zsh.
+- `config init`, `config validate`, and `config inspect` repository policy
+  helpers.
+- Formatted `rules test` output and `--fail-on validation-error` enforcement.
+- Expanded provider detector coverage.
+- CI package and crates.io publish dry-run gates.
+
+## Next Candidates
+
+### Detector Quality and Corpus Growth
+
+- Add more real-world false-positive fixtures for common framework config.
+- Expand provider detector coverage only when matching confidence is testable.
+- Keep every detector addition tied to golden fixtures and public-output
+  leakage tests.
+
+### Package-Manager Smoke Automation
+
+- Add scheduled or release-time Homebrew and Scoop install smoke coverage when
+  runners with those package managers are available.
+- Keep formula and manifest updates version-for-version with GitHub Releases.
+
+### Windows Package Channels
+
+- Revisit Winget after the Windows distribution format is final, likely using
+  the GitHub Release zip as the upstream portable artifact.

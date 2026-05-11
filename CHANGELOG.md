@@ -2,11 +2,12 @@
 
 All notable changes to `safe-bundle` are documented here.
 
-The project follows semantic versioning before 1.0 with the usual pre-1.0
-caveat: CLI and bundle schemas may change when needed, but breaking changes
-should be called out explicitly.
+The project follows semantic versioning. Breaking CLI, configuration, or bundle
+schema changes are called out explicitly.
 
 ## Unreleased
+
+## 1.1.0 - 2026-05-11
 
 ### Added
 
