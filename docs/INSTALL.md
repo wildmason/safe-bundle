@@ -1,8 +1,8 @@
 # Install safe-bundle
 
-`safe-bundle` is distributed first through GitHub Releases. Source installs are
-also supported for developers and early adopters. Crates.io and package-manager
-publication are maintainer-controlled follow-up steps.
+`safe-bundle` is distributed through crates.io and GitHub Releases. Source
+installs are also supported for developers and early adopters. Package-manager
+publication is a maintainer-controlled follow-up step.
 
 ## GitHub Release Installer
 
@@ -65,6 +65,12 @@ safe-bundle --help
 
 ## Cargo Installs
 
+From crates.io:
+
+```sh
+cargo install safe-bundle --locked
+```
+
 From a local checkout:
 
 ```sh
@@ -76,14 +82,6 @@ From GitHub:
 ```sh
 cargo install --git https://github.com/wildmason/safe-bundle.git --locked
 ```
-
-Crates.io installation will be available after a maintainer publishes the crate:
-
-```sh
-cargo install safe-bundle --locked
-```
-
-Until then, use GitHub Releases or the Git install path.
 
 ## Shell Completions
 

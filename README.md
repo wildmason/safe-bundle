@@ -46,6 +46,12 @@ Supported MVP detectors include:
 
 ## Install
 
+From crates.io:
+
+```sh
+cargo install safe-bundle --locked
+```
+
 Download release assets from the
 [GitHub Releases](https://github.com/wildmason/safe-bundle/releases) page and
 verify the matching `.sha256` file before using a binary.

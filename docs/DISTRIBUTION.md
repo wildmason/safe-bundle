@@ -1,7 +1,7 @@
 # Distribution
 
-`safe-bundle` is distributed through GitHub Releases. Crates.io publication is
-supported, but remains a credential-gated maintainer step.
+`safe-bundle` is distributed through crates.io and GitHub Releases. Crates.io
+publication remains a manual maintainer step for each release.
 
 Package-manager recipe generation is documented in
 [package manager recipes](PACKAGING.md). End-user installation options are
@@ -88,8 +88,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-release.ps1
 
 ## Crates.io
 
-The `1.0.0` crate should be published from the `v1.0.0` tag, not from a later
-post-release `main` checkout:
+The `1.0.0` crate was published from the `v1.0.0` tag. Future release crates
+should also be published from their release tag, not from a later post-release
+`main` checkout:
 
 ```powershell
 git checkout v1.0.0

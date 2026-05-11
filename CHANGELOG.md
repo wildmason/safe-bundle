@@ -38,6 +38,7 @@ should be called out explicitly.
 - CI package and crates.io publish dry-run coverage.
 - Install guide covering release archives, source installs, completions,
   repository policy setup, and package-manager status.
+- Install documentation updated for the published crates.io package.
 
 ## 1.0.0 - 2026-05-10
 
