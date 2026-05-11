@@ -1,7 +1,8 @@
 # Distribution
 
-`safe-bundle` is distributed through crates.io and GitHub Releases. Crates.io
-publication remains a manual maintainer step for each release.
+`safe-bundle` is distributed through crates.io, GitHub Releases, Homebrew, and
+Scoop. Crates.io and package-manager publication remain manual maintainer steps
+for each release.
 
 Package-manager recipe generation is documented in
 [package manager recipes](PACKAGING.md). End-user installation options are
@@ -57,6 +58,25 @@ safe-bundle completions powershell > safe-bundle.ps1
 
 Install the generated file using the conventions for the target shell or
 package manager.
+
+## Package Managers
+
+Homebrew:
+
+```sh
+brew install wildmason/tap/safe-bundle
+```
+
+Scoop:
+
+```powershell
+scoop bucket add wildmason https://github.com/wildmason/scoop-bucket
+scoop install safe-bundle
+```
+
+The Homebrew formula lives in `wildmason/homebrew-tap` as
+`Formula/safe-bundle.rb`. The Scoop manifest lives in `wildmason/scoop-bucket`
+as `bucket/safe-bundle.json`.
 
 ## Verify A Release
 

@@ -52,6 +52,19 @@ From crates.io:
 cargo install safe-bundle --locked
 ```
 
+From Homebrew:
+
+```sh
+brew install wildmason/tap/safe-bundle
+```
+
+From Scoop:
+
+```powershell
+scoop bucket add wildmason https://github.com/wildmason/scoop-bucket
+scoop install safe-bundle
+```
+
 Download release assets from the
 [GitHub Releases](https://github.com/wildmason/safe-bundle/releases) page and
 verify the matching `.sha256` file before using a binary.

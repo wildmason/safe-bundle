@@ -39,6 +39,8 @@ should be called out explicitly.
 - Install guide covering release archives, source installs, completions,
   repository policy setup, and package-manager status.
 - Install documentation updated for the published crates.io package.
+- Homebrew tap and Scoop bucket install documentation for the published
+  package-manager recipes.
 
 ## 1.0.0 - 2026-05-10
 

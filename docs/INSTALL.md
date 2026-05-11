@@ -1,8 +1,7 @@
 # Install safe-bundle
 
-`safe-bundle` is distributed through crates.io and GitHub Releases. Source
-installs are also supported for developers and early adopters. Package-manager
-publication is a maintainer-controlled follow-up step.
+`safe-bundle` is distributed through crates.io, GitHub Releases, Homebrew, and
+Scoop. Source installs are also supported for developers and early adopters.
 
 ## GitHub Release Installer
 
@@ -112,8 +111,21 @@ profile overrides should apply to everyone working in the repository.
 
 ## Package Managers
 
-Homebrew and Scoop recipes are generated from verified GitHub Release assets,
-but the generated recipes live in downstream tap or bucket repositories. See
+Homebrew:
+
+```sh
+brew install wildmason/tap/safe-bundle
+```
+
+Scoop:
+
+```powershell
+scoop bucket add wildmason https://github.com/wildmason/scoop-bucket
+scoop install safe-bundle
+```
+
+The Homebrew tap is `https://github.com/wildmason/homebrew-tap`. The Scoop
+bucket is `https://github.com/wildmason/scoop-bucket`. See
 [package manager recipes](PACKAGING.md) for the maintainer workflow.
 
 Winget packaging is deferred until the Windows distribution format is finalized.

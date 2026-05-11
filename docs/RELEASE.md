@@ -105,3 +105,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\generate-packaging
 Review the generated Homebrew formula and Scoop manifest before copying them
 into the downstream tap or bucket repositories. See
 [package manager recipes](PACKAGING.md) for the full workflow.
+
+Current downstream repositories:
+
+- Homebrew tap: `https://github.com/wildmason/homebrew-tap`
+- Scoop bucket: `https://github.com/wildmason/scoop-bucket`

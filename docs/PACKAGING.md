@@ -1,8 +1,14 @@
 # Package Manager Recipes
 
-`safe-bundle` can be distributed through package-manager repositories that
-consume GitHub Release archives. The source repository keeps recipe generation
-scripted, but does not commit generated package-manager files.
+`safe-bundle` is distributed through Wildmason-owned package-manager
+repositories that consume GitHub Release archives. The source repository keeps
+recipe generation scripted, but does not commit generated package-manager
+files.
+
+Live repositories:
+
+- Homebrew tap: `https://github.com/wildmason/homebrew-tap`
+- Scoop bucket: `https://github.com/wildmason/scoop-bucket`
 
 ## Generate Recipes
 
@@ -36,8 +42,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\generate-packaging
 
 ## Homebrew
 
-The generated formula is suitable for a Wildmason-owned tap repository. Review
-the formula, then copy it to the tap as `Formula/safe-bundle.rb`.
+The generated formula is suitable for `wildmason/homebrew-tap`. Review the
+formula, then copy it to the tap as `Formula/safe-bundle.rb`.
 
 The formula installs from the GitHub Release archives:
 
@@ -54,9 +60,8 @@ safe-bundle --version
 
 ## Scoop
 
-The generated Scoop manifest is suitable for a Wildmason-owned bucket
-repository. Review the manifest, then copy it to the bucket as
-`bucket/safe-bundle.json`.
+The generated Scoop manifest is suitable for `wildmason/scoop-bucket`. Review
+the manifest, then copy it to the bucket as `bucket/safe-bundle.json`.
 
 The manifest installs the Windows archive:
 
@@ -65,7 +70,7 @@ The manifest installs the Windows archive:
 After pushing the bucket update, test a clean install:
 
 ```powershell
-scoop bucket add wildmason <bucket-url>
+scoop bucket add wildmason https://github.com/wildmason/scoop-bucket
 scoop install safe-bundle
 safe-bundle --version
 ```
